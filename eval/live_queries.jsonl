@@ -1,0 +1,50 @@
+{"query":"Add 2 and 3","tool":"add","args":{"a":2,"b":3}}
+{"query":"Add 0 and 0","tool":"add","args":{"a":0,"b":0}}
+{"query":"Add 4 and 9","tool":"add","args":{"a":4,"b":9}}
+{"query":"Add 17 and 25","tool":"add","args":{"a":17,"b":25}}
+{"query":"Add 100 and 1","tool":"add","args":{"a":100,"b":1}}
+{"query":"Add 8 and 13","tool":"add","args":{"a":8,"b":13}}
+{"query":"Add 12 and 5","tool":"add","args":{"a":12,"b":5}}
+{"query":"Add 42 and 58","tool":"add","args":{"a":42,"b":58}}
+{"query":"Add 1 and 999","tool":"add","args":{"a":1,"b":999}}
+{"query":"Add 123 and 456","tool":"add","args":{"a":123,"b":456}}
+{"query":"What is 6 plus 7?","tool":"add","args":{"a":6,"b":7}}
+{"query":"What is 30 plus 40?","tool":"add","args":{"a":30,"b":40}}
+{"query":"Sum 5 and 10","tool":"add","args":{"a":5,"b":10}}
+{"query":"Sum 99 and 1","tool":"add","args":{"a":99,"b":1}}
+{"query":"Compute 11 + 22","tool":"add","args":{"a":11,"b":22}}
+{"query":"Get weather in Pune in c","tool":"get_weather","args":{"city":"Pune","unit":"c"}}
+{"query":"Get weather in Delhi in c","tool":"get_weather","args":{"city":"Delhi","unit":"c"}}
+{"query":"Get weather in Mumbai in c","tool":"get_weather","args":{"city":"Mumbai","unit":"c"}}
+{"query":"Get weather in Chennai in c","tool":"get_weather","args":{"city":"Chennai","unit":"c"}}
+{"query":"Get weather in Kolkata in c","tool":"get_weather","args":{"city":"Kolkata","unit":"c"}}
+{"query":"Weather for Jaipur, c units","tool":"get_weather","args":{"city":"Jaipur","unit":"c"}}
+{"query":"Weather for Hyderabad, c units","tool":"get_weather","args":{"city":"Hyderabad","unit":"c"}}
+{"query":"Weather for Bengaluru, c units","tool":"get_weather","args":{"city":"Bengaluru","unit":"c"}}
+{"query":"Weather for Nagpur, c units","tool":"get_weather","args":{"city":"Nagpur","unit":"c"}}
+{"query":"Weather for Surat, c units","tool":"get_weather","args":{"city":"Surat","unit":"c"}}
+{"query":"Search Python, limit 1","tool":"search","args":{"q":"Python","limit":1}}
+{"query":"Search agents, limit 2","tool":"search","args":{"q":"agents","limit":2}}
+{"query":"Search Pune, limit 3","tool":"search","args":{"q":"Pune","limit":3}}
+{"query":"Search solar, limit 4","tool":"search","args":{"q":"solar","limit":4}}
+{"query":"Search maps, limit 5","tool":"search","args":{"q":"maps","limit":5}}
+{"query":"Search books, limit 6","tool":"search","args":{"q":"books","limit":6}}
+{"query":"Search trains, limit 7","tool":"search","args":{"q":"trains","limit":7}}
+{"query":"Search music, limit 8","tool":"search","args":{"q":"music","limit":8}}
+{"query":"Search science, limit 9","tool":"search","args":{"q":"science","limit":9}}
+{"query":"Search recipes, limit 10","tool":"search","args":{"q":"recipes","limit":10}}
+{"query":"Set alarm for 1:11 labelled event1","tool":"set_alarm","args":{"hour":1,"minute":11,"label":"event1"}}
+{"query":"Set alarm for 2:12 labelled event2","tool":"set_alarm","args":{"hour":2,"minute":12,"label":"event2"}}
+{"query":"Set alarm for 3:13 labelled event3","tool":"set_alarm","args":{"hour":3,"minute":13,"label":"event3"}}
+{"query":"Set alarm for 4:14 labelled event4","tool":"set_alarm","args":{"hour":4,"minute":14,"label":"event4"}}
+{"query":"Set alarm for 5:15 labelled event5","tool":"set_alarm","args":{"hour":5,"minute":15,"label":"event5"}}
+{"query":"Set alarm for 6:16 labelled event6","tool":"set_alarm","args":{"hour":6,"minute":16,"label":"event6"}}
+{"query":"Set alarm for 7:17 labelled event7","tool":"set_alarm","args":{"hour":7,"minute":17,"label":"event7"}}
+{"query":"Set alarm for 8:18 labelled event8","tool":"set_alarm","args":{"hour":8,"minute":18,"label":"event8"}}
+{"query":"Set alarm for 9:19 labelled event9","tool":"set_alarm","args":{"hour":9,"minute":19,"label":"event9"}}
+{"query":"Set alarm for 10:20 labelled event10","tool":"set_alarm","args":{"hour":10,"minute":20,"label":"event10"}}
+{"query":"Set alarm for 11:21 labelled event11","tool":"set_alarm","args":{"hour":11,"minute":21,"label":"event11"}}
+{"query":"Set alarm for 12:22 labelled event12","tool":"set_alarm","args":{"hour":12,"minute":22,"label":"event12"}}
+{"query":"Set alarm for 13:23 labelled event13","tool":"set_alarm","args":{"hour":13,"minute":23,"label":"event13"}}
+{"query":"Set alarm for 14:24 labelled event14","tool":"set_alarm","args":{"hour":14,"minute":24,"label":"event14"}}
+{"query":"Set alarm for 15:25 labelled event15","tool":"set_alarm","args":{"hour":15,"minute":25,"label":"event15"}}
