@@ -2,7 +2,7 @@ import inspect
 import re
 import types
 import typing
-from typing import Any, Callable, Optional, Union, get_args, get_origin
+from typing import Any, Callable, Union, get_args, get_origin
 
 from .types import ParamSpec, ToolSpec
 from .registry import ToolRegistry, default_registry

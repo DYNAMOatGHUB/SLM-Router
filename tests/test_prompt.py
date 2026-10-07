@@ -66,3 +66,32 @@ Reply:"""
             self.assertNotIn("Traceback", repair)
             self.assertNotIn('File "', repair)
             self.assertTrue(repair.endswith("Reply:"))
+
+    def test_description_with_placeholder_not_replaced(self):
+        spec = ToolSpec("t", "Find {query} fast", (), lambda: None)
+        prompt = render_prompt("hello", [spec])
+        self.assertIn("Find {query} fast", prompt)
+        self.assertEqual(prompt.count("hello"), 1)
+
+    def test_string_default_newline_sanitized(self):
+        p = ParamSpec("x", "str", False, "a\nb")
+        spec = ToolSpec("t", "desc", (p,), lambda: None)
+        line = render_tool_line(spec)
+        self.assertNotIn("\n", line)
+        self.assertIn('x:str="a b"', line)
+
+    def test_string_default_truncated_in_prompt_only(self):
+        long_str = "a" * 30
+        p = ParamSpec("x", "str", False, long_str)
+        spec = ToolSpec("t", "desc", (p,), lambda: None)
+        line = render_tool_line(spec)
+        expected_str = ("a" * 20) + "..."
+        self.assertIn(f'x:str="{expected_str}"', line)
+        self.assertEqual(spec.params[0].default, long_str)
+
+    def test_query_with_braces_is_safe(self):
+        prompt = render_prompt("what is {tool_lines} and {query}?", [])
+        lines = prompt.splitlines()
+        self.assertTrue(lines[-2].startswith("Query: what is {tool_lines} and {query}?"))
+        self.assertEqual(lines[-1], "Reply:")
+        self.assertEqual(len([l for l in lines if l.startswith("Query:")]), 1)

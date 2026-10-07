@@ -1,6 +1,7 @@
 import math
 import re
 import unicodedata
+from typing import Sequence
 from .types import ToolSpec
 
 PROMPT_TEMPLATE = """Pick one tool for the query.
@@ -49,9 +50,9 @@ def render_tool_line(spec: ToolSpec) -> str:
             if p.default is None:
                 default_str = "None"
             elif isinstance(p.default, str):
-                default_val = p.default
+                default_val = _sanitize(p.default)
                 if len(default_val) > 20:
-                    default_val = default_val[:17] + "..."
+                    default_val = default_val[:20] + "..."
                 default_str = f'"{default_val}"'
             else:
                 default_str = repr(p.default)
@@ -60,7 +61,7 @@ def render_tool_line(spec: ToolSpec) -> str:
     params_str = ", ".join(rendered_params)
     return f"{spec.name}({params_str}) - {spec.description}"
 
-def render_prompt(query: str, tools: tuple[ToolSpec, ...], *, max_query_chars: int = 2000) -> str:
+def render_prompt(query: str, tools: Sequence[ToolSpec], *, max_query_chars: int = 2000) -> str:
     sanitized = _sanitize(query)[:max_query_chars]
     if not sanitized:
         raise ValueError("empty query")
@@ -70,7 +71,7 @@ def render_prompt(query: str, tools: tuple[ToolSpec, ...], *, max_query_chars: i
     else:
         tool_lines = "\n".join(render_tool_line(t) for t in tools)
         
-    return PROMPT_TEMPLATE.replace("{tool_lines}", tool_lines).replace("{query}", sanitized)
+    return PROMPT_TEMPLATE.format(tool_lines=tool_lines, query=sanitized)
 
 def render_repair_prompt(prompt: str, previous_output: str, code: str, detail: str) -> str:
     """
