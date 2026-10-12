@@ -1,0 +1,17 @@
+# TinyAgent evaluation
+
+| Metric | Value |
+|---|---|
+| mode | live |
+| hardware | x86_64 |
+| os | Linux-7.0.0-38-generic-x86_64-with-glibc2.39 |
+| model | llama3:8b |
+| runtime | ollama |
+| runtime_version | 0.34.0 |
+| quantization | Q4_0 |
+| queries | 50 |
+| tool_selection_accuracy | 1.0 |
+| arg_accuracy | 1.0 |
+| repair_usage | 0 |
+| p50_latency_ms | 109.3068129994208 |
+| p95_latency_ms | 156.4332950001699 |

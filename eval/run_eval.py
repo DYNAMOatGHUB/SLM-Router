@@ -180,25 +180,36 @@ def _live_queries() -> list[dict[str, Any]]:
         return [json.loads(line) for line in stream if line.strip()]
 
 
-def _ollama_metadata(host: str, model: str) -> tuple[str, str]:
-    """Best-effort runtime version and quantization; "not measured" on any failure."""
+def _fetch_json(url: str, payload: dict | None = None) -> dict:
     import urllib.request
 
-    def fetch(path: str, payload: dict | None = None) -> dict:
-        data = None if payload is None else json.dumps(payload).encode("utf-8")
-        request = urllib.request.Request(
-            f"{host}{path}", data=data, headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(request, timeout=5) as response:
-            return json.loads(response.read().decode("utf-8"))
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
 
+
+def _ollama_metadata(host: str, model: str) -> tuple[str, str]:
+    """Best-effort runtime version and quantization; "not measured" on any failure."""
     version = quantization = "not measured"
     try:
-        version = str(fetch("/api/version")["version"])
-        quantization = str(fetch("/api/show", {"model": model})["details"]["quantization_level"])
+        version = str(_fetch_json(f"{host}/api/version")["version"])
+        details = _fetch_json(f"{host}/api/show", {"model": model})["details"]
+        quantization = str(details["quantization_level"])
     except Exception:
         pass
     return version, quantization
+
+
+def _llamacpp_metadata(base_url: str) -> tuple[str, str]:
+    """Best-effort llama.cpp build and model file type from /props."""
+    try:
+        props = _fetch_json(f"{base_url}/props")
+        return f"llama.cpp {props['build_info']}", str(props.get("model_ftype", "not measured"))
+    except Exception:
+        return "not measured", "not measured"
 
 
 def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
@@ -215,7 +226,7 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
         from tinyagent.backends import LlamaCppBackend
 
         backend = LlamaCppBackend()
-        runtime_version = quantization = "not measured"
+        runtime_version, quantization = _llamacpp_metadata(backend.base_url)
     else:
         raise ValueError(f"unsupported live backend: {backend_name}")
     if record:
@@ -294,7 +305,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--max-repairs", type=int, default=1)
     parser.add_argument("--backend", choices=("ollama", "llamacpp"), default="ollama")
-    parser.add_argument("--model", default="llama3:8b")
+    parser.add_argument(
+        "--model", default="llama3:8b",
+        help="Ollama model tag; for llama.cpp, a label for the report",
+    )
     parser.add_argument("--record")
     parser.add_argument("--fixture")
     parser.add_argument("--out", default="eval/report.json")

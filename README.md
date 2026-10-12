@@ -79,11 +79,18 @@ have side effects.
 
 | Runtime | Endpoint | Tested |
 |---|---|---|
-| Ollama | `POST /api/generate` | Ollama 0.34.0, `mistral:latest` (7.2B, Q4_K_M), Linux x86_64, NVIDIA RTX 5070 |
-| llama.cpp server | `POST /completion` | Contract-tested against a local stub only |
+| Ollama | `POST /api/generate` | Ollama 0.34.0 with `llama3:8b` (Q4_0) and `mistral:latest` (7.2B, Q4_K_M), Linux x86_64, NVIDIA RTX 5070 |
+| llama.cpp server | `POST /v1/chat/completions` (default) or `POST /completion` | llama.cpp b11565 (CPU build), same mistral 7B Q4_K_M weights, Linux x86_64 |
 
 Both backends use greedy, seeded decoding (`temperature 0`, `top_k 1`). They
 warn when the host is not loopback, because prompts would leave the machine.
+
+Both backends apply the model's chat template, which instruction-tuned models
+need. Ollama does this by default; `LlamaCppBackend` does it by using the
+server's chat endpoint. Use `LlamaCppBackend(chat_template=False)` only for
+base (non-instruct) models: it sends the raw prompt to `/completion`. With
+mistral-7b-instruct, raw prompts chose the right tool for only 27 of 50
+benchmark queries, against 50 of 50 with the template.
 
 ## Writing tools
 
@@ -116,12 +123,21 @@ warn when the host is not loopback, because prompts would leave the machine.
 | Run | Command | Result |
 |---|---|---|
 | Simulated (no model, CI) | `python -m eval.run_eval --mode sim` | 795 fault-injection cases: 280/280 recoverable faults recovered on the first call, **0 false executions**, max 2 model calls (ceiling 2), median framework overhead 0.05 ms — [report](eval/report.md) |
-| Live | `python -m eval.run_eval --mode live --backend ollama --model mistral:latest --record eval/fixtures/live-mistral.jsonl --out eval/report_live.json` | 50 queries: **100% tool selection, 100% argument accuracy**, 0 repairs, p50 130 ms, p95 184 ms — [report](eval/report_live.md) |
-| Replay | `python -m eval.run_eval --mode replay --fixture eval/fixtures/live-mistral.jsonl` | Re-runs the recorded live session exactly; also run in CI by `tests/test_replay.py` |
+| Live | `python -m eval.run_eval --mode live --backend ollama --model llama3:8b --record eval/fixtures/live-llama3.jsonl --out eval/report_live_llama3.json` | See the table below |
+| Replay | `python -m eval.run_eval --mode replay --fixture eval/fixtures/live-llama3.jsonl` | Re-runs a recorded live session exactly; every recording in `eval/fixtures/` is also replayed in CI by `tests/test_replay.py` |
 
-Live numbers are for one machine and model as listed above. They are
-measurements, not guarantees. Other models, quantizations or hardware can
-differ.
+Live results on the 50-query benchmark (`eval/live_queries.jsonl`), measured on
+Linux x86_64 with an NVIDIA RTX 5070 on 2026-10-12:
+
+| Runtime | Model | Tool selection | Arguments | Repairs | p50 / p95 latency | Report |
+|---|---|---|---|---|---|---|
+| Ollama 0.34.0 (GPU) | `llama3:8b` Q4_0 | **50/50** | **50/50** | 0 | 109 / 156 ms | [report](eval/report_live_llama3.md) |
+| Ollama 0.34.0 (GPU) | `mistral:latest` 7.2B Q4_K_M | **50/50** | **50/50** | 0 | 130 / 184 ms | [report](eval/report_live.md) |
+| llama.cpp b11565 (CPU only) | same mistral 7B Q4_K_M weights | **50/50** | **50/50** | 0 | 1378 / 1634 ms | [report](eval/report_live_llamacpp.md) |
+
+These are measurements on one machine, not guarantees. Other models,
+quantizations or hardware can differ, and the benchmark covers only the four
+demo tools.
 
 ## Development
 
