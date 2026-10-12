@@ -25,8 +25,10 @@ class BackendTest(unittest.TestCase):
             "test-model", host=self.server.url, timeout_s=timeout_s, num_ctx=num_ctx
         )
 
-    def _llamacpp(self, *, timeout_s: float = 60.0):
-        return LlamaCppBackend(base_url=self.server.url, timeout_s=timeout_s)
+    def _llamacpp(self, *, timeout_s: float = 60.0, chat_template: bool = True):
+        return LlamaCppBackend(
+            base_url=self.server.url, timeout_s=timeout_s, chat_template=chat_template
+        )
 
     def test_ollama_request_contract(self) -> None:
         self.server.set_response(200, {"response": "  raw\ntext  "})
@@ -76,12 +78,43 @@ class BackendTest(unittest.TestCase):
         self.assertNotIn("num_ctx", self.server.requests[0]["json"]["options"])
         self.assertEqual((result.prompt_tokens, result.completion_tokens), (None, None))
 
-    def test_llamacpp_request_contract(self) -> None:
+    def test_llamacpp_chat_request_contract(self) -> None:
+        self.server.set_response(
+            200,
+            {
+                "choices": [{"message": {"role": "assistant", "content": " raw\ntext "}}],
+                "usage": {"prompt_tokens": 7, "completion_tokens": 4},
+            },
+        )
+        result = self._llamacpp().complete("prompt", stop=DEFAULT_STOP, max_tokens=96)
+        request = self.server.requests[0]
+        self.assertEqual(request["path"], "/v1/chat/completions")
+        self.assertEqual(
+            request["json"],
+            {
+                "messages": [{"role": "user", "content": "prompt"}],
+                "max_tokens": 96,
+                "stream": False,
+                "temperature": 0.0,
+                "top_k": 1,
+                "top_p": 1.0,
+                "seed": 42,
+                "stop": DEFAULT_STOP,
+                "cache_prompt": True,
+            },
+        )
+        self.assertEqual((result.text, result.backend), (" raw\ntext ", "llamacpp"))
+        self.assertEqual((result.prompt_tokens, result.completion_tokens), (7, 4))
+        self.assertEqual(len(self.server.requests), 1)
+
+    def test_llamacpp_raw_completion_contract(self) -> None:
         self.server.set_response(
             200,
             {"content": "unchanged", "tokens_evaluated": 7, "tokens_predicted": 4},
         )
-        result = self._llamacpp().complete("prompt", stop=DEFAULT_STOP, max_tokens=96)
+        result = self._llamacpp(chat_template=False).complete(
+            "prompt", stop=DEFAULT_STOP, max_tokens=96
+        )
         request = self.server.requests[0]
         self.assertEqual(request["path"], "/completion")
         self.assertEqual(
@@ -167,7 +200,11 @@ class BackendTest(unittest.TestCase):
             (b"not json", self._ollama()),
             (b"[]", self._ollama()),
             (b'{"response": 2}', self._ollama()),
-            (b'{"content": null}', self._llamacpp()),
+            (b'{"content": null}', self._llamacpp(chat_template=False)),
+            (b'{"content": "text"}', self._llamacpp()),
+            (b'{"choices": []}', self._llamacpp()),
+            (b'{"choices": [{"message": {"content": null}}]}', self._llamacpp()),
+            (b'{"choices": ["x"]}', self._llamacpp()),
         )
         for body, backend in cases:
             with self.subTest(body=body, backend=backend):
