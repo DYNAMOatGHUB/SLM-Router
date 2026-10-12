@@ -1,6 +1,7 @@
-from typing import Tuple
+from __future__ import annotations
 
 from .types import ToolSpec
+
 
 class ToolRegistry:
     def __init__(self) -> None:
@@ -14,10 +15,10 @@ class ToolRegistry:
     def get(self, name: str) -> ToolSpec | None:
         return self._tools.get(name)
 
-    def all(self) -> Tuple[ToolSpec, ...]:
+    def all(self) -> tuple[ToolSpec, ...]:
         return tuple(self._tools.values())
 
-    def names(self) -> Tuple[str, ...]:
+    def names(self) -> tuple[str, ...]:
         return tuple(self._tools.keys())
 
     def __len__(self) -> int:
@@ -25,5 +26,6 @@ class ToolRegistry:
 
     def __contains__(self, name: str) -> bool:
         return name in self._tools
+
 
 default_registry = ToolRegistry()

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import time
 import warnings
+from typing import Sequence
 
 from tinyagent.backends.base import (
     _is_loopback_url,
     _post_json,
     _protocol_error,
+    _single_line,
     _token_count,
     _validate_call,
 )
@@ -43,7 +45,9 @@ class OllamaBackend:
                 stacklevel=2,
             )
 
-    def complete(self, prompt: str, *, stop, max_tokens: int) -> Completion:
+    def complete(
+        self, prompt: str, *, stop: Sequence[str], max_tokens: int
+    ) -> Completion:
         stop_list = _validate_call(prompt, stop, max_tokens)
         options = {
             "temperature": 0.0,
@@ -73,13 +77,9 @@ class OllamaBackend:
 
         server_error = response.get("error")
         if isinstance(server_error, str) and server_error.strip():
-            error = BackendError(
-                "E_BACKEND_HTTP",
-                " ".join(server_error.replace(prompt, "[redacted]").split())[:200]
-                if prompt
-                else " ".join(server_error.split())[:200],
-            )
-            raise error from ValueError("Ollama reported an error")
+            raise BackendError(
+                "E_BACKEND_HTTP", _single_line(server_error, sensitive_text=prompt)
+            ) from ValueError("Ollama reported an error")
 
         text = response.get("response")
         if not isinstance(text, str):

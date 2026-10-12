@@ -26,20 +26,26 @@ _REPAIR_REASONS = {
     "E_FINAL_NOT_ALLOWED": "a tool call is required",
 }
 
+
 def estimate_tokens(text: str) -> int:
     """Estimate token count for budgeting (not a real tokenizer)."""
     return math.ceil(len(text) / 4)
 
+
 def _sanitize(text: str) -> str:
-    chars = []
-    for c in text:
-        if unicodedata.category(c) == "Cc":
-            chars.append(" ")
-        else:
-            chars.append(c)
-    s = "".join(chars)
-    s = re.sub(r'\s+', ' ', s)
-    return s.strip()
+    """Replace control characters with spaces and collapse all whitespace runs."""
+    spaced = "".join(" " if unicodedata.category(c) == "Cc" else c for c in text)
+    return re.sub(r"\s+", " ", spaced).strip()
+
+
+def _render_default(value: object) -> str:
+    if isinstance(value, str):
+        value = _sanitize(value)
+        if len(value) > 20:
+            value = value[:20] + "..."
+        return f'"{value}"'
+    return repr(value)
+
 
 def render_tool_line(spec: ToolSpec) -> str:
     rendered_params = []
@@ -47,31 +53,21 @@ def render_tool_line(spec: ToolSpec) -> str:
         if p.required:
             rendered_params.append(f"{p.name}:{p.type}")
         else:
-            if p.default is None:
-                default_str = "None"
-            elif isinstance(p.default, str):
-                default_val = _sanitize(p.default)
-                if len(default_val) > 20:
-                    default_val = default_val[:20] + "..."
-                default_str = f'"{default_val}"'
-            else:
-                default_str = repr(p.default)
-            rendered_params.append(f"{p.name}:{p.type}={default_str}")
-            
+            rendered_params.append(f"{p.name}:{p.type}={_render_default(p.default)}")
+
     params_str = ", ".join(rendered_params)
     return f"{spec.name}({params_str}) - {spec.description}"
+
 
 def render_prompt(query: str, tools: Sequence[ToolSpec], *, max_query_chars: int = 2000) -> str:
     sanitized = _sanitize(query)[:max_query_chars]
     if not sanitized:
         raise ValueError("empty query")
-        
-    if not tools:
-        tool_lines = "(none)"
-    else:
-        tool_lines = "\n".join(render_tool_line(t) for t in tools)
-        
+
+    tool_lines = "\n".join(render_tool_line(t) for t in tools) or "(none)"
+
     return PROMPT_TEMPLATE.format(tool_lines=tool_lines, query=sanitized)
+
 
 def render_repair_prompt(prompt: str, previous_output: str, code: str, detail: str) -> str:
     """
@@ -80,8 +76,8 @@ def render_repair_prompt(prompt: str, previous_output: str, code: str, detail: s
     """
     sanitized_output = _sanitize(previous_output)[:200]
     sanitized_detail = _sanitize(detail)[:40]
-    
+
     reason_template = _REPAIR_REASONS.get(code, "bad format")
     short_reason = reason_template.replace("{detail}", sanitized_detail)
-    
+
     return f'{prompt} {sanitized_output}\nInvalid: {short_reason}. Reply with ONE line: ACTION: tool_name(arg="value") or FINAL: text\nReply:'

@@ -7,7 +7,7 @@ import socket
 import urllib.error
 import urllib.request
 
-from tinyagent.errors import BACKEND_CODES, BackendError
+from tinyagent.errors import BackendError
 
 
 def _single_line(value: object, *, sensitive_text: str | None = None) -> str:
@@ -37,12 +37,6 @@ def _is_loopback_url(url: str) -> bool:
         return socket.inet_pton(socket.AF_INET6, host) == (b"\x00" * 15 + b"\x01")
     except OSError:
         return False
-
-
-def _raise_backend_error(code: str, detail: object, cause: Exception) -> None:
-    if code not in BACKEND_CODES:
-        code = "E_BACKEND_PROTOCOL"
-    raise BackendError(code, _single_line(detail)) from cause
 
 
 def _http_error_body(error: urllib.error.HTTPError) -> str:
@@ -76,44 +70,23 @@ def _post_json(
         raise BackendError(
             "E_BACKEND_HTTP", _single_line(detail, sensitive_text=sensitive_text)
         ) from exc
-    except urllib.error.URLError as exc:
-        reason = exc.reason
+    except Exception as exc:
+        # URLError wraps the underlying socket failure in .reason.
+        reason = exc.reason if isinstance(exc, urllib.error.URLError) else exc
         if isinstance(reason, (socket.timeout, TimeoutError)):
-            detail = f"no response within {timeout_s}s"
-            code = "E_BACKEND_TIMEOUT"
+            code, detail = "E_BACKEND_TIMEOUT", f"no response within {timeout_s}s"
         else:
-            detail = f"cannot reach {url}: {reason}"
-            code = "E_BACKEND_UNREACHABLE"
+            code, detail = "E_BACKEND_UNREACHABLE", f"cannot reach {url}: {reason}"
         raise BackendError(
             code, _single_line(detail, sensitive_text=sensitive_text)
-        ) from exc
-    except (socket.timeout, TimeoutError) as exc:
-        detail = f"no response within {timeout_s}s"
-        raise BackendError(
-            "E_BACKEND_TIMEOUT", _single_line(detail, sensitive_text=sensitive_text)
-        ) from exc
-    except OSError as exc:
-        detail = f"cannot reach {url}: {exc}"
-        raise BackendError(
-            "E_BACKEND_UNREACHABLE", _single_line(detail, sensitive_text=sensitive_text)
-        ) from exc
-    except Exception as exc:
-        detail = f"cannot reach {url}: {exc}"
-        raise BackendError(
-            "E_BACKEND_UNREACHABLE", _single_line(detail, sensitive_text=sensitive_text)
         ) from exc
 
     try:
         result = json.loads(raw_response.decode("utf-8"))
     except (UnicodeError, ValueError) as exc:
-        _raise_backend_error(
-            "E_BACKEND_PROTOCOL", "unexpected response shape: invalid JSON", exc
-        )
+        raise _protocol_error("invalid JSON") from exc
     if not isinstance(result, dict):
-        exc = ValueError("JSON response is not an object")
-        _raise_backend_error(
-            "E_BACKEND_PROTOCOL", "unexpected response shape: expected an object", exc
-        )
+        raise _protocol_error("expected an object")
     return result
 
 

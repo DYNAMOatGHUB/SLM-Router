@@ -33,7 +33,8 @@ class BackendTest(unittest.TestCase):
         result = self._ollama().complete("prompt", stop=DEFAULT_STOP, max_tokens=96)
         request = self.server.requests[0]
         self.assertEqual(request["path"], "/api/generate")
-        self.assertEqual(request["headers"]["Content-type"], "application/json")
+        headers = {name.lower(): value for name, value in request["headers"].items()}
+        self.assertEqual(headers["content-type"], "application/json")
         self.assertEqual(
             request["json"],
             {
@@ -141,7 +142,7 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(len(self.server.requests), 1)
 
     def test_http_error_precedes_url_error_mapping(self) -> None:
-        for status in (404, 500):
+        for count, status in enumerate((404, 500), 1):
             with self.subTest(status=status):
                 self.server.set_response(status, "server says no")
                 with self.assertRaises(BackendError) as raised:
@@ -149,7 +150,7 @@ class BackendTest(unittest.TestCase):
                 self.assertEqual(raised.exception.code, "E_BACKEND_HTTP")
                 self.assertIn(f"HTTP {status}", raised.exception.detail)
                 self.assertNotIn("secret prompt", raised.exception.detail)
-                self.assertEqual(len(self.server.requests), status - 403)
+                self.assertEqual(len(self.server.requests), count)
 
     def test_ollama_error_field(self) -> None:
         self.server.set_response(

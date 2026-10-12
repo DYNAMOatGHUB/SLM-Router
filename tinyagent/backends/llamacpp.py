@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import warnings
+from typing import Sequence
 
 from tinyagent.backends.base import (
     _is_loopback_url,
@@ -36,7 +37,9 @@ class LlamaCppBackend:
                 stacklevel=2,
             )
 
-    def complete(self, prompt: str, *, stop, max_tokens: int):
+    def complete(
+        self, prompt: str, *, stop: Sequence[str], max_tokens: int
+    ) -> Completion:
         stop_list = _validate_call(prompt, stop, max_tokens)
         payload = {
             "prompt": prompt,
@@ -61,8 +64,6 @@ class LlamaCppBackend:
         text = response.get("content")
         if not isinstance(text, str):
             raise _protocol_error("missing or non-string content field")
-        from tinyagent.types import Completion
-
         return Completion(
             text=text,
             latency_ms=latency_ms,

@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence, Union
 
 ParamType = Literal["str", "int", "float", "bool"]
+
 
 @dataclass(frozen=True)
 class ParamSpec:
@@ -12,12 +14,14 @@ class ParamSpec:
     default: Any = None
     optional: bool = False          # True when annotated Optional[T]; "None"/"null" coerces to None
 
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
     description: str
     params: tuple[ParamSpec, ...]
     func: Callable[..., Any]
+
 
 @dataclass(frozen=True)
 class Completion:
@@ -27,9 +31,11 @@ class Completion:
     completion_tokens: int | None
     backend: str
 
+
 class Backend(Protocol):
     name: str
     def complete(self, prompt: str, *, stop: Sequence[str], max_tokens: int) -> Completion: ...
+
 
 @dataclass(frozen=True)
 class ParsedAction:
@@ -38,17 +44,21 @@ class ParsedAction:
     raw: str
     warnings: tuple[str, ...] = ()
 
+
 @dataclass(frozen=True)
 class ParsedFinal:
     text: str
     raw: str
+
 
 @dataclass(frozen=True)
 class ParseFailure:
     code: str                       # one of errors.PARSE_CODES
     raw: str
 
+
 ParseOutcome = Union[ParsedAction, ParsedFinal, ParseFailure]
+
 
 @dataclass(frozen=True)
 class ToolResult:
@@ -59,6 +69,7 @@ class ToolResult:
     error_code: str | None
     error_detail: str | None        # short, single line, safe to show to the model
     duration_ms: float
+
 
 @dataclass(frozen=True)
 class AgentResult:
