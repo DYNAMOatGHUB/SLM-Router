@@ -3,7 +3,7 @@
 | Field          | Value                                                                                                                                                                        |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Document       | TinyAgent System Architecture (ARCH-000)                                                                                                                                     |
-| Version        | 1.0                                                                                                                                                                          |
+| Version        | 1.1                                                                                                                                                                          |
 | Status         | Sprint baseline. Interface contracts in Section 8 are FROZEN after Phase 0.                                                                                                  |
 | Audience       | All four engineers, reviewers, demo judges                                                                                                                                   |
 | Team           | Aisha Amna (Engineer 1), Deepak (Engineer 2), Dharshini (Engineer 3), Dhyanesh (Engineer 4)                                                                                  |
@@ -174,7 +174,7 @@ All three failures share one root cause: **the framework relies on the model's i
 [Step 2: Linear Prompt Injection] -> query + compact tool lines + output grammar -> one prompt string
      |
      v
-[Step 3: Native Local Inference] --> HTTP POST to Ollama /api/generate or llama.cpp /completion
+[Step 3: Native Local Inference] --> HTTP POST to Ollama /api/generate or llama.cpp /v1/chat/completions
      |                                temperature 0.0, fixed seed, stop sequences, max_tokens cap
      v
 [Step 4: Regex Parsing Layer] -----> normalize -> match ACTION/FINAL -> tokenize args (no eval, no JSON)
@@ -354,18 +354,21 @@ Reply:
 
 Each backend implements one method: `complete(prompt, *, stop, max_tokens) -> Completion`. Sampling is locked inside the backend, and callers cannot raise the temperature.
 
-| Setting           | Ollama `POST /api/generate`         | llama.cpp server `POST /completion` |
-| ----------------- | ------------------------------------ | ------------------------------------ |
-| Prompt            | `prompt`                           | `prompt`                           |
-| No streaming      | `"stream": false`                  | `"stream": false`                  |
-| Temperature       | `options.temperature = 0.0`        | `temperature = 0.0`                |
-| Greedy            | `options.top_k = 1`                | `top_k = 1`                        |
-| Seed              | `options.seed = 42` (configurable) | `seed = 42` (configurable)         |
-| Output cap        | `options.num_predict`              | `n_predict`                        |
-| Stop sequences    | `options.stop`                     | `stop`                             |
-| Output text field | `response`                         | `content`                          |
+| Setting           | Ollama `POST /api/generate`         | llama.cpp `POST /v1/chat/completions` (default) | llama.cpp `POST /completion` (`chat_template=False`) |
+| ----------------- | ------------------------------------ | ----------------------------------------------- | ---------------------------------------------------- |
+| Prompt            | `prompt`                           | `messages = [{"role": "user", "content": prompt}]` | `prompt`                                          |
+| No streaming      | `"stream": false`                  | `"stream": false`                             | `"stream": false`                                  |
+| Temperature       | `options.temperature = 0.0`        | `temperature = 0.0`                           | `temperature = 0.0`                                |
+| Greedy            | `options.top_k = 1`                | `top_k = 1`                                   | `top_k = 1`                                        |
+| Seed              | `options.seed = 42` (configurable) | `seed = 42` (configurable)                    | `seed = 42` (configurable)                         |
+| Output cap        | `options.num_predict`              | `max_tokens`                                  | `n_predict`                                        |
+| Stop sequences    | `options.stop`                     | `stop`                                        | `stop`                                             |
+| Output text field | `response`                         | `choices[0].message.content`                  | `content`                                          |
+| Token counts      | `prompt_eval_count`, `eval_count`  | `usage.prompt_tokens`, `usage.completion_tokens` | `tokens_evaluated`, `tokens_predicted`          |
 
-Transport uses `urllib.request` from the standard library. The transport layer does not retry automatically: a failure becomes a typed `BackendError`, and the agent fails closed. Deepak must verify these field names, including the token-count fields, against the exact server versions used in the sprint and pin those versions in the README.
+**Chat template.** Instruction-tuned models only follow the prompt reliably when it is wrapped in their chat template. Ollama's `/api/generate` applies the template itself. llama.cpp's `/completion` sends the prompt raw, so `LlamaCppBackend` uses the server's `/v1/chat/completions` endpoint by default, which applies the template embedded in the GGUF file. The prompt text is identical in both cases; only the wrapping differs. With mistral-7b-instruct Q4_K_M on the 50-query benchmark, raw `/completion` chose the right tool for 27 of 50 queries and the chat endpoint for 50 of 50. `chat_template=False` keeps the raw `/completion` contract for base (non-instruct) models.
+
+Transport uses `urllib.request` from the standard library. The transport layer does not retry automatically: a failure becomes a typed `BackendError`, and the agent fails closed. Field names were verified against Ollama 0.34.0 and llama.cpp b11565; the README pins these versions.
 
 ---
 
@@ -521,12 +524,13 @@ Public API per module. Owners may add private helpers (leading underscore) but m
 | `registry.py`           | `ToolRegistry.register(spec)`, `.get(name) -> ToolSpec \| None`, `.all() -> tuple[ToolSpec, ...]`, `.names() -> tuple[str, ...]`; module-level `default_registry`                                                       | Aisha Amna |
 | `prompt.py`             | `render_prompt(query, tools, *, max_query_chars=2000) -> str`, `render_repair_prompt(prompt, previous_output, code, detail) -> str`, `render_tool_line(spec) -> str`, `estimate_tokens(text) -> int`, `STOP_SEQUENCES` | Aisha Amna |
 | `backends/ollama.py`    | `OllamaBackend(model, *, host="http://127.0.0.1:11434", timeout_s=60.0, seed=42, num_ctx=None)`                                                                                                                                | Deepak     |
-| `backends/llamacpp.py`  | `LlamaCppBackend(*, base_url="http://127.0.0.1:8080", timeout_s=60.0, seed=42)`                                                                                                                                                | Deepak     |
+| `backends/llamacpp.py`  | `LlamaCppBackend(*, base_url="http://127.0.0.1:8080", timeout_s=60.0, seed=42, chat_template=True)`                                                                                                                            | Deepak     |
 | `parser.py`             | `parse(text: str) -> ParseOutcome`                                                                                                                                                                                             | Dharshini  |
 | `coercion.py`           | `coerce(raw: str, param: ParamSpec) -> Any` (raises `CoercionError`)                                                                                                                                                         | Dharshini  |
 | `executor.py`           | `execute(action, registry, *, timeout_s=10.0, max_output_chars=4000) -> ToolResult`                                                                                                                                            | Dharshini  |
 | `agent.py`              | `TinyAgent(backend, registry=None, *, max_repairs=1, require_tool=False, max_tokens=96, tool_timeout_s=10.0)`, `.run(query: str) -> AgentResult`                                                                             | Dhyanesh   |
 | `backends/simulator.py` | `SimulatedBackend(script_or_fn)`, `ReplayBackend(path)`, `RecordingBackend(inner, path)`                                                                                                                                   | Dhyanesh   |
+| `demo_tools.py`         | `build_registry() -> ToolRegistry` (the four demo tools used by the CLI, examples and evaluation)                                                                                                                              | Dhyanesh   |
 
 ---
 
@@ -600,24 +604,37 @@ tinyagent/
   coercion.py              E3
   executor.py              E3
   agent.py                 E4
-  cli.py                   E4
+  cli.py                   E4  `tinyagent` console script
+  __main__.py              E4  `python -m tinyagent`
+  demo_tools.py            E4  demo tools shipped with the package (CLI, examples, eval)
+  py.typed                 E4  PEP 561 marker
 tests/
   test_reflection.py       E1
   test_registry.py         E1
   test_prompt.py           E1
   test_backends.py         E2  (local stub server built on http.server)
+  stub_server.py           E2
+  fixtures/                E2  recorded backend responses
   test_parser.py           E3
   test_coercion.py         E3
-  test_executor.py         E3
+  test_executor.py         E3  (includes the F01-F16 verdict table test)
+  fixtures_tools.py        E3
   test_agent.py            E4
+  test_integration.py      E4
+  test_replay.py           E4  replays every eval/fixtures/live-*.jsonl
   test_no_deps.py          E4
+  test_static_gate.py      E4  NFR-7 AST gate
 eval/
   scenarios.py             E4
   faults.py                E4  (verdict table co-reviewed with E3)
   run_eval.py              E4
   live_queries.jsonl       E4
   fixtures/                E4  recorded replay files
-examples/                  E4
+  report*.{json,md}        E4  simulated and live evaluation reports
+bench/
+  bench_parser.py          E3  NFR-8 microbenchmark
+examples/                  E4  quickstart.py, flask_endpoint.py; demo_tools.py re-exports tinyagent.demo_tools
+.github/workflows/ci.yml   E4
 pyproject.toml             E4
 README.md                  E4
 ARCHITECTURE.md            All four engineers (change by consensus)
@@ -674,3 +691,10 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 | Temperature 0 is not bit-identical across hardware/backends | Different outputs on different machines        | Replay fixtures keep tests reproducible; live results are reported per machine and model                       |
 | Tool timeout cannot kill threads                            | Background work continues after timeout        | Documented; tools should enforce their own timeouts                                                            |
 | Server API drift (Ollama/llama.cpp versions)                | Transport breaks                               | Deepak pins tested server versions; unknown response shapes map to `E_BACKEND_PROTOCOL`                       |
+
+## 16. Revision History
+
+| Version | Date       | Change                                                                                                                                                              | Approved by        |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1.0     | Sprint     | Sprint baseline                                                                                                                                                     | All four engineers |
+| 1.1     | 2026-10-13 | `LlamaCppBackend` uses `/v1/chat/completions` by default, new `chat_template` parameter (Sections 3.2, 6, 8); `demo_tools` moved into the package (Sections 8, 11); layout updated to match the repository | All four engineers |
