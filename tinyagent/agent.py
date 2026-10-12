@@ -44,18 +44,22 @@ class TinyAgent:
         current = original
         outputs: list[str] = []
         last_tool_result: ToolResult | None = None
+        attempt = 0
+
+        def finish(status, text, provenance, error_code=None) -> AgentResult:
+            # Reads the loop state (attempt, outputs, last_tool_result) at call time.
+            return AgentResult(
+                status, text, provenance, last_tool_result,
+                attempt + 1, tuple(outputs), error_code,
+            )
 
         for attempt in range(1 + self.max_repairs):
-            calls = attempt + 1
             try:
                 completion = self.backend.complete(
                     current, stop=STOP_SEQUENCES, max_tokens=self.max_tokens
                 )
             except BackendError as error:
-                return AgentResult(
-                    "error", f"{error.code}: {error.detail}", "none",
-                    last_tool_result, calls, tuple(outputs), error.code,
-                )
+                return finish("error", f"{error.code}: {error.detail}", "none", error.code)
 
             outputs.append(completion.text)
             outcome = parse(completion.text)
@@ -65,23 +69,14 @@ class TinyAgent:
                 )
                 last_tool_result = result
                 if result.ok:
-                    return AgentResult(
-                        "tool", result.output or "", "tool", result,
-                        calls, tuple(outputs), None,
-                    )
+                    return finish("tool", result.output or "", "tool")
                 code = result.error_code or "E_TOOL_EXCEPTION"
-                if code in EXEC_TERMINAL:
-                    return AgentResult(
-                        "error", f"{code}: {result.error_detail or ''}".rstrip(": "),
-                        "none", result, calls, tuple(outputs), code,
-                    )
                 detail = result.error_detail or ""
+                if code in EXEC_TERMINAL:
+                    return finish("error", f"{code}: {detail}".rstrip(": "), "none", code)
             elif isinstance(outcome, ParsedFinal):
                 if not self.require_tool:
-                    return AgentResult(
-                        "final", outcome.text, "model", last_tool_result,
-                        calls, tuple(outputs), None,
-                    )
+                    return finish("final", outcome.text, "model")
                 code, detail = "E_FINAL_NOT_ALLOWED", ""
             elif isinstance(outcome, ParseFailure):
                 code, detail = outcome.code, ""
@@ -89,9 +84,8 @@ class TinyAgent:
                 raise TypeError("parser returned an invalid outcome")
 
             if attempt == self.max_repairs:
-                return AgentResult(
-                    "error", f"retry exhausted after {code}", "none",
-                    last_tool_result, calls, tuple(outputs), "E_RETRY_EXHAUSTED",
+                return finish(
+                    "error", f"retry exhausted after {code}", "none", "E_RETRY_EXHAUSTED"
                 )
             current = render_repair_prompt(
                 original, completion.text, code, detail
