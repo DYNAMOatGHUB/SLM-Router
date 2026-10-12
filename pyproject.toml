@@ -9,9 +9,29 @@ description = "A bounded, zero-runtime-dependency tool router for local language
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
+keywords = ["llm", "agent", "tool-calling", "ollama", "llama.cpp", "local-models"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/LLM-project-Team/TinyAgent-SLM"
+
+[project.scripts]
+tinyagent = "tinyagent.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["tinyagent*", "examples*", "eval*"]
+include = ["tinyagent*"]
 
-[tool.setuptools]
-include-package-data = false
+[tool.setuptools.package-data]
+tinyagent = ["py.typed"]

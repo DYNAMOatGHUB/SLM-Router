@@ -73,7 +73,7 @@ def _fault_code(text: str, registry: Any) -> str | None:
 
 
 def _sim(seed: int, max_repairs: int) -> tuple[dict[str, Any], bool]:
-    from examples.demo_tools import build_registry
+    from tinyagent.demo_tools import build_registry
     from tinyagent.agent import TinyAgent
     from tinyagent.backends.simulator import SimulatedBackend
     from tinyagent.prompt import estimate_tokens, render_prompt, render_tool_line
@@ -180,8 +180,29 @@ def _live_queries() -> list[dict[str, Any]]:
         return [json.loads(line) for line in stream if line.strip()]
 
 
+def _ollama_metadata(host: str, model: str) -> tuple[str, str]:
+    """Best-effort runtime version and quantization; "not measured" on any failure."""
+    import urllib.request
+
+    def fetch(path: str, payload: dict | None = None) -> dict:
+        data = None if payload is None else json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            f"{host}{path}", data=data, headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    version = quantization = "not measured"
+    try:
+        version = str(fetch("/api/version")["version"])
+        quantization = str(fetch("/api/show", {"model": model})["details"]["quantization_level"])
+    except Exception:
+        pass
+    return version, quantization
+
+
 def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
-    from examples.demo_tools import build_registry
+    from tinyagent.demo_tools import build_registry
     from tinyagent.agent import TinyAgent
     from tinyagent.backends.simulator import RecordingBackend
 
@@ -189,10 +210,12 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
         from tinyagent.backends import OllamaBackend
 
         backend = OllamaBackend(model)
+        runtime_version, quantization = _ollama_metadata(backend.host, model)
     elif backend_name == "llamacpp":
         from tinyagent.backends import LlamaCppBackend
 
         backend = LlamaCppBackend()
+        runtime_version = quantization = "not measured"
     else:
         raise ValueError(f"unsupported live backend: {backend_name}")
     if record:
@@ -224,8 +247,8 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
         "os": platform.platform(),
         "model": model,
         "runtime": backend_name,
-        "runtime_version": "not measured",
-        "quantization": "not measured",
+        "runtime_version": runtime_version,
+        "quantization": quantization,
         "queries": len(results),
         "tool_selection_accuracy": tool_correct / len(results) if results else None,
         "arg_accuracy": arg_correct / len(results) if results else None,
@@ -236,7 +259,7 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
 
 
 def _replay(fixture: str) -> dict[str, Any]:
-    from examples.demo_tools import build_registry
+    from tinyagent.demo_tools import build_registry
     from tinyagent.agent import TinyAgent
     from tinyagent.backends.simulator import ReplayBackend
 

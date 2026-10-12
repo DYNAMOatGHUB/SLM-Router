@@ -1,4 +1,8 @@
-"""Safe, deterministic demo tools used by the CLI and evaluation harness."""
+"""Safe, deterministic demo tools used by the CLI, examples and evaluation harness.
+
+These match the PRD-04 fixture signatures. They are demo fixtures, not part of
+the stable public API.
+"""
 
 from __future__ import annotations
 
