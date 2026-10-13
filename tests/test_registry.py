@@ -1,6 +1,6 @@
 import unittest
-from tinyagent.registry import ToolRegistry
-from tinyagent.types import ToolSpec
+from slmrouter.registry import ToolRegistry
+from slmrouter.types import ToolSpec
 
 class TestRegistry(unittest.TestCase):
     def test_registry_basics(self):

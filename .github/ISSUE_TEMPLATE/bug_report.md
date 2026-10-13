@@ -17,7 +17,7 @@ labels: bug
 ```
 
 **Environment**
-- TinyAgent version (`python -c "import tinyagent; print(tinyagent.__version__)"`):
+- SLMRouter version (`python -c "import slmrouter; print(slmrouter.__version__)"`):
 - Python version:
 - OS:
 - Runtime and version (Ollama / llama.cpp):

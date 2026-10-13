@@ -10,9 +10,9 @@ import json
 import unittest
 from pathlib import Path
 
-from tinyagent import TinyAgent
-from tinyagent.backends.simulator import ReplayBackend
-from tinyagent.demo_tools import build_registry
+from slmrouter import SLMRouter
+from slmrouter.backends.simulator import ReplayBackend
+from slmrouter.demo_tools import build_registry
 
 ROOT = Path(__file__).resolve().parents[1]
 QUERIES = ROOT / "eval" / "live_queries.jsonl"
@@ -24,7 +24,7 @@ class ReplayRegressionTest(unittest.TestCase):
         self.assertTrue(FIXTURES, "no recorded live fixtures found")
         cases = [json.loads(line) for line in QUERIES.read_text("utf-8").splitlines() if line]
         for fixture in FIXTURES:
-            agent = TinyAgent(ReplayBackend(fixture), build_registry(), require_tool=True)
+            agent = SLMRouter(ReplayBackend(fixture), build_registry(), require_tool=True)
             for case in cases:
                 with self.subTest(fixture=fixture.name, query=case["query"]):
                     result = agent.run(case["query"])

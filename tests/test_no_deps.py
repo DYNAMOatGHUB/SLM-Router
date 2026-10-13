@@ -6,11 +6,11 @@ import unittest
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1] / "tinyagent"
+ROOT = Path(__file__).resolve().parents[1] / "slmrouter"
 
 
 class NoDependenciesTest(unittest.TestCase):
-    def test_only_stdlib_or_tinyagent(self):
+    def test_only_stdlib_or_slmrouter(self):
         disallowed = []
         for path in ROOT.rglob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -25,6 +25,6 @@ class NoDependenciesTest(unittest.TestCase):
                     continue
                 for name in names:
                     root = name.split(".", 1)[0]
-                    if root not in sys.stdlib_module_names | {"tinyagent"}:
+                    if root not in sys.stdlib_module_names | {"slmrouter"}:
                         disallowed.append(f"{path}: {name}")
         self.assertEqual(disallowed, [])

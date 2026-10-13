@@ -7,7 +7,7 @@ import socket
 import urllib.error
 import urllib.request
 
-from tinyagent.errors import BackendError
+from slmrouter.errors import BackendError
 
 
 def _single_line(value: object, *, sensitive_text: str | None = None) -> str:

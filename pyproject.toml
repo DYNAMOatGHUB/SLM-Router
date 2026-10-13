@@ -3,21 +3,17 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tinyagent-slm"
+name = "slmrouter"
 version = "0.1.0"
 description = "A bounded, zero-runtime-dependency tool router for local language models"
 readme = "README.md"
-license = "MIT"
-license-files = ["LICENSE"]
-authors = [
-    { name = "Aisha Amna" },
-    { name = "Deepak" },
-    { name = "Dharshini" },
-    { name = "Dhyanesh" },
-]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Dhyanesh Mahendiran" }]
+maintainers = [{ name = "Dhyanesh Mahendiran" }]
 requires-python = ">=3.10"
 dependencies = []
-keywords = ["llm", "agent", "tool-calling", "ollama", "llama.cpp", "local-models"]
+keywords = ["llm", "slm", "agent", "tool-calling", "function-calling", "ollama", "llama.cpp", "local-llm", "small-language-models"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -33,17 +29,17 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/LLM-project-Team/TinyAgent-SLM"
-Documentation = "https://github.com/LLM-project-Team/TinyAgent-SLM#readme"
-Repository = "https://github.com/LLM-project-Team/TinyAgent-SLM"
-Issues = "https://github.com/LLM-project-Team/TinyAgent-SLM/issues"
-Changelog = "https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM"
+Documentation = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM#readme"
+Repository = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM"
+Issues = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM/issues"
+Changelog = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/CHANGELOG.md"
 
 [project.scripts]
-tinyagent = "tinyagent.cli:main"
+slmrouter = "slmrouter.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["tinyagent*"]
+include = ["slmrouter*"]
 
 [tool.setuptools.package-data]
-tinyagent = ["py.typed"]
+slmrouter = ["py.typed"]

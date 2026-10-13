@@ -19,10 +19,10 @@ import threading
 import time
 from typing import Any
 
-from tinyagent.coercion import coerce
-from tinyagent.errors import CoercionError
-from tinyagent.registry import ToolRegistry
-from tinyagent.types import ParsedAction, ToolResult, ToolSpec
+from slmrouter.coercion import coerce
+from slmrouter.errors import CoercionError
+from slmrouter.registry import ToolRegistry
+from slmrouter.types import ParsedAction, ToolResult, ToolSpec
 
 TRUNCATION_MARKER = "...[truncated]"
 
@@ -79,7 +79,7 @@ def _run_with_timeout(func, kwargs: dict[str, Any], timeout_s: float) -> tuple[s
         except BaseException as exc:  # noqa: BLE001 - contained and reported, never re-raised
             outcome.append(("error", exc))
 
-    thread = threading.Thread(target=worker, name="tinyagent-tool", daemon=True)
+    thread = threading.Thread(target=worker, name="slmrouter-tool", daemon=True)
     thread.start()
     thread.join(timeout_s)
     if thread.is_alive() or not outcome:

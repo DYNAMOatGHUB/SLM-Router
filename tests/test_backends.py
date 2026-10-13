@@ -8,8 +8,8 @@ import unittest
 import warnings
 
 from tests.stub_server import StubServer
-from tinyagent.backends import LlamaCppBackend, OllamaBackend
-from tinyagent.errors import BackendError
+from slmrouter.backends import LlamaCppBackend, OllamaBackend
+from slmrouter.errors import BackendError
 
 
 DEFAULT_STOP = ["\n\n", "\nQuery:", "\nReply:"]

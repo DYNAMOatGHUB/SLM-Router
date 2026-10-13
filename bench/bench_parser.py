@@ -12,7 +12,7 @@ import statistics
 import time
 
 from tests.test_parser import TRUTH_TABLE
-from tinyagent.parser import parse
+from slmrouter.parser import parse
 
 
 def run(repeat: int) -> list[float]:

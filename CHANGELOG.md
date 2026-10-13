@@ -8,11 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0] - 2026-10-13
 
-First public release.
+First public release. The project was developed under the working name
+TinyAgent and renamed to SLMRouter for publication.
 
 ### Added
 
-- `@tiny_tool` decorator that builds a tool description from a function's
+- `@tool` decorator that builds a tool description from a function's
   signature, type hints and docstring.
 - Compact single-prompt rendering (about 100 tokens) with query sanitization and
   a non-growing repair prompt.
@@ -23,10 +24,10 @@ First public release.
   small-model formatting errors and rejects ambiguous output.
 - Strict argument coercion for `str`, `int`, `float`, `bool` and `Optional`.
 - Allowlisted executor with a per-call timeout, output cap and redacted errors.
-- `TinyAgent.run` with at most `1 + max_repairs` model calls and an
+- `SLMRouter.run` with at most `1 + max_repairs` model calls and an
   `AgentResult` that always reports provenance.
-- `tinyagent` command-line tool, simulated, recording and replay backends, a
+- `slmrouter` command-line tool, simulated, recording and replay backends, a
   fault-injection evaluation harness and recorded live evaluations.
 
-[Unreleased]: https://github.com/LLM-project-Team/TinyAgent-SLM/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/LLM-project-Team/TinyAgent-SLM/releases/tag/v0.1.0
+[Unreleased]: https://github.com/DYNAMOatGHUB/TinyAgent-SLM/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/DYNAMOatGHUB/TinyAgent-SLM/releases/tag/v0.1.0

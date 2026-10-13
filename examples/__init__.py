@@ -1,1 +1,1 @@
-"""TinyAgent examples and demo fixtures."""
+"""SLMRouter examples and demo fixtures."""

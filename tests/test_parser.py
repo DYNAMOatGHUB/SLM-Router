@@ -8,9 +8,9 @@ import time
 import unittest
 
 from tests.fixtures_tools import fixture_registry
-from tinyagent.executor import execute
-from tinyagent.parser import parse
-from tinyagent.types import ParsedAction, ParsedFinal, ParseFailure
+from slmrouter.executor import execute
+from slmrouter.parser import parse
+from slmrouter.types import ParsedAction, ParsedFinal, ParseFailure
 
 ADD = ParsedAction("add", {"a": "2", "b": "3"}, "")
 

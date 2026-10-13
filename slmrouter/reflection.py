@@ -30,7 +30,7 @@ def _parse_type_annotation(param_name: str, fn_name: str, annotation: Any) -> tu
         return _ALLOWED_TYPES[annotation], False
 
     raise TypeError(
-        f"tiny_tool: parameter '{param_name}' of '{fn_name}' has unsupported type "
+        f"@tool: parameter '{param_name}' of '{fn_name}' has unsupported type "
         f"{annotation}; allowed: str,int,float,bool"
     )
 
@@ -45,10 +45,10 @@ def _describe(func: Callable, fallback: str) -> str:
     return desc[:77] + "..." if len(desc) > 80 else desc
 
 
-def tiny_tool(func: Callable | None = None, *, name: str | None = None, registry: ToolRegistry | None = None):
+def tool(func: Callable | None = None, *, name: str | None = None, registry: ToolRegistry | None = None):
     if func is None:
         def wrapper(f: Callable) -> Callable:
-            return tiny_tool(f, name=name, registry=registry)
+            return tool(f, name=name, registry=registry)
         return wrapper
 
     fn_name = func.__name__
@@ -64,7 +64,7 @@ def tiny_tool(func: Callable | None = None, *, name: str | None = None, registry
     for param_name, param in sig.parameters.items():
         if param.kind in _UNSUPPORTED_KINDS:
             raise TypeError(
-                f"tiny_tool: parameter '{param_name}' of '{fn_name}' has unsupported kind {param.kind}"
+                f"@tool: parameter '{param_name}' of '{fn_name}' has unsupported kind {param.kind}"
             )
 
         annotation = type_hints.get(param_name, inspect.Parameter.empty)

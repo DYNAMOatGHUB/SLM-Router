@@ -1,15 +1,15 @@
-"""Bounded, single-decision orchestration for TinyAgent."""
+"""Bounded, single-decision orchestration for SLMRouter."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tinyagent.registry import ToolRegistry
-    from tinyagent.types import AgentResult, Backend, ToolResult
+    from slmrouter.registry import ToolRegistry
+    from slmrouter.types import AgentResult, Backend, ToolResult
 
 
-class TinyAgent:
+class SLMRouter:
     def __init__(
         self,
         backend: Backend,
@@ -20,7 +20,7 @@ class TinyAgent:
         max_tokens: int = 96,
         tool_timeout_s: float = 10.0,
     ) -> None:
-        from tinyagent.registry import default_registry
+        from slmrouter.registry import default_registry
 
         if max_repairs not in (0, 1, 2):
             raise ValueError("max_repairs must be 0, 1, or 2")
@@ -34,11 +34,11 @@ class TinyAgent:
         self.tool_timeout_s = tool_timeout_s
 
     def run(self, query: str) -> AgentResult:
-        from tinyagent.errors import BackendError, EXEC_TERMINAL
-        from tinyagent.executor import execute
-        from tinyagent.parser import parse
-        from tinyagent.prompt import STOP_SEQUENCES, render_prompt, render_repair_prompt
-        from tinyagent.types import AgentResult, ParseFailure, ParsedAction, ParsedFinal
+        from slmrouter.errors import BackendError, EXEC_TERMINAL
+        from slmrouter.executor import execute
+        from slmrouter.parser import parse
+        from slmrouter.prompt import STOP_SEQUENCES, render_prompt, render_repair_prompt
+        from slmrouter.types import AgentResult, ParseFailure, ParsedAction, ParsedFinal
 
         original = render_prompt(query, self.registry.all())
         current = original

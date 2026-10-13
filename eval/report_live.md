@@ -1,4 +1,4 @@
-# TinyAgent evaluation
+# SLMRouter evaluation
 
 | Metric | Value |
 |---|---|

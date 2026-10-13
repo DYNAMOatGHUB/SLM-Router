@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from tinyagent.types import ParsedAction, ParsedFinal, ParseFailure, ParseOutcome
+from slmrouter.types import ParsedAction, ParsedFinal, ParseFailure, ParseOutcome
 
 MAX_INPUT_CHARS = 8000
 MAX_RAW_CHARS = 500

@@ -8,12 +8,12 @@ from typing import Optional
 
 from eval.faults import FAULTS
 from eval.scenarios import boom_scenario, scenarios
-from tinyagent.demo_tools import build_registry
-from tinyagent.executor import TRUNCATION_MARKER, execute
-from tinyagent.parser import parse
-from tinyagent.reflection import tiny_tool
-from tinyagent.registry import ToolRegistry
-from tinyagent.types import ParsedAction
+from slmrouter.demo_tools import build_registry
+from slmrouter.executor import TRUNCATION_MARKER, execute
+from slmrouter.parser import parse
+from slmrouter.reflection import tool
+from slmrouter.registry import ToolRegistry
+from slmrouter.types import ParsedAction
 
 
 def _action(tool: str, **args: str) -> ParsedAction:
@@ -28,43 +28,43 @@ class CountingRegistry:
         self.registry = ToolRegistry()
         counted = self._counted
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def add(a: int, b: int) -> int:
             """Add two integers."""
             counted("add")
             return a + b
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def greet(name: str, punctuation: str = "!", times: Optional[int] = None) -> str:
             """Greet someone."""
             counted("greet")
             return f"hi {name}{punctuation}" * (times or 1)
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def nothing() -> None:
             """Return nothing."""
             counted("nothing")
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def boom() -> None:
             """Always fails."""
             counted("boom")
             raise RuntimeError("bad\nthing at /home/user/secret/file.py")
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def big() -> str:
             """Large output."""
             counted("big")
             return "x" * 5000
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def slow() -> str:
             """Sleeps."""
             counted("slow")
             time.sleep(2)
             return "late"
 
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def bad_str() -> object:
             """Returns an object whose str() raises."""
             counted("bad_str")

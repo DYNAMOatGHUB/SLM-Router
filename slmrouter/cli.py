@@ -17,12 +17,12 @@ class _TracingBackend:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from tinyagent.demo_tools import build_registry
-    from tinyagent.agent import TinyAgent
-    from tinyagent.backends.simulator import SimulatedBackend
+    from slmrouter.demo_tools import build_registry
+    from slmrouter.agent import SLMRouter
+    from slmrouter.backends.simulator import SimulatedBackend
 
     parser = argparse.ArgumentParser(
-        prog="python -m tinyagent",
+        prog="python -m slmrouter",
         description="Route one query to one demo tool through a local model.",
     )
     parser.add_argument("query", nargs="?", default="What is 2+3?")
@@ -41,12 +41,12 @@ def main(argv: list[str] | None = None) -> int:
         backend = SimulatedBackend(['ACTION: add(a="2", b="3")'])
         print("[SIMULATED]")
     elif args.backend == "ollama":
-        from tinyagent.backends import OllamaBackend
+        from slmrouter.backends import OllamaBackend
 
         options = {"host": args.host} if args.host else {}
         backend = OllamaBackend(args.model, timeout_s=args.timeout, **options)
     else:
-        from tinyagent.backends import LlamaCppBackend
+        from slmrouter.backends import LlamaCppBackend
 
         options = {"base_url": args.host} if args.host else {}
         backend = LlamaCppBackend(timeout_s=args.timeout, **options)
@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     registry = build_registry()
 
     backend = _TracingBackend(backend)
-    agent = TinyAgent(
+    agent = SLMRouter(
         backend, registry, max_repairs=args.max_repairs, require_tool=args.require_tool
     )
     result = agent.run(args.query)
@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     if result.error_code:
         print(f"error_code: {result.error_code}")
     if args.verbose:
-        from tinyagent.prompt import estimate_tokens
+        from slmrouter.prompt import estimate_tokens
 
         for index, (prompt, raw) in enumerate(
             zip(backend.prompts, result.raw_outputs), 1

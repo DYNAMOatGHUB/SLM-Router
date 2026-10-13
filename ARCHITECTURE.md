@@ -1,25 +1,25 @@
-# TinyAgent: Architecture, Problem Analysis, and Solution Design
+# SLMRouter: Architecture, Problem Analysis, and Solution Design
 
 | Field          | Value                                                                                                                                                                        |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document       | TinyAgent System Architecture (ARCH-000)                                                                                                                                     |
-| Version        | 1.1                                                                                                                                                                          |
+| Document       | SLMRouter System Architecture (ARCH-000)                                                                                                                                     |
+| Version        | 1.2                                                                                                                                                                          |
 | Status         | Sprint baseline. Interface contracts in Section 8 are FROZEN after Phase 0.                                                                                                  |
 | Audience       | All four engineers, reviewers, demo judges                                                                                                                                   |
 | Team           | Aisha Amna (Engineer 1), Deepak (Engineer 2), Dharshini (Engineer 3), Dhyanesh (Engineer 4)                                                                                  |
-| Companion PRDs | [PRD-01](prd/PRD-01-Reflection-Prompt-Aisha.md), [PRD-02](prd/PRD-02-Inference-Transport-Deepak.md), [PRD-03](prd/PRD-03-Parser-Executor-Dharshini.md), [PRD-04](prd/PRD-04-Orchestrator-Evaluation-Dhyanesh.md) |
+| Companion PRDs | PRD-01 (Reflection and Prompt), PRD-02 (Inference Transport), PRD-03 (Parser and Executor), PRD-04 (Orchestrator and Evaluation); internal sprint documents, not published |
 
 ---
 
 ## 1. Executive Summary
 
-TinyAgent is a zero-dependency Python library that lets a 7B/8B local Small Language Model (SLM), served by Ollama or llama.cpp, reliably call Python functions.
+SLMRouter is a zero-dependency Python library that lets a 7B/8B local Small Language Model (SLM), served by Ollama or llama.cpp, reliably call Python functions.
 
 Agent frameworks such as CrewAI, AutoGen, and LangGraph were designed around frontier cloud models. They assume the model can follow long system prompts, emit valid JSON, and recover from its own errors through multi-turn reasoning. A local 8B model does not meet these assumptions, which causes context exhaustion, JSON parse crashes, and retry loops that do not end.
 
-TinyAgent treats the SLM as a **deterministic router**, not a reasoner. Each query results in one bounded decision: call one registered tool with arguments, or return a final answer. The design rests on five mechanisms:
+SLMRouter treats the SLM as a **deterministic router**, not a reasoner. Each query results in one bounded decision: call one registered tool with arguments, or return a final answer. The design rests on five mechanisms:
 
-1. **Code reflection** (`@tiny_tool`) builds a compact tool schema from Python signatures. Developers do not write JSON Schema.
+1. **Code reflection** (`@tool`) builds a compact tool schema from Python signatures. Developers do not write JSON Schema.
 2. **Linear prompt injection** sends one short prompt containing the tool list, the output grammar, and the query.
 3. **Native local inference** makes a single HTTP POST with temperature `0.0`, a fixed seed, and stop sequences.
 4. **Regex parsing** reads a one-line grammar (`ACTION: tool(arg="v")` or `FINAL: text`). The model never produces JSON.
@@ -84,7 +84,7 @@ A typical framework prompt stacks several layers before the user's question appe
 
 The problem is the ratio of signal to boilerplate. The user query becomes a small fraction of the context, and a small model spends its limited capacity on framework text.
 
-**TinyAgent target:** base prompt of at most 120 estimated tokens plus at most 40 estimated tokens per tool (Section 9).
+**SLMRouter target:** base prompt of at most 120 estimated tokens plus at most 40 estimated tokens per tool (Section 9).
 
 ### 2.4 Failure mode 2: the JSON hallucination trap
 
@@ -136,7 +136,7 @@ Three factors make this worse on local hardware:
 
 All three failures share one root cause: **the framework relies on the model's intelligence for correctness**. The fix is to move correctness out of the model and into deterministic code.
 
-| Responsibility       | Cloud framework puts it in       | TinyAgent puts it in                             |
+| Responsibility       | Cloud framework puts it in       | SLMRouter puts it in                             |
 | -------------------- | -------------------------------- | ------------------------------------------------ |
 | Knowing tool schemas | Long JSON Schema in the prompt   | Python reflection; one compact line per tool     |
 | Output structure     | Model's JSON skill               | One-line grammar + tolerant regex                |
@@ -147,7 +147,7 @@ All three failures share one root cause: **the framework relies on the model's i
 
 ---
 
-## 3. The Solution: TinyAgent Architecture
+## 3. The Solution: SLMRouter Architecture
 
 ### 3.1 Design principles
 
@@ -168,7 +168,7 @@ All three failures share one root cause: **the framework relies on the model's i
 [User Query]
      |
      v
-[Step 1: Code Reflection] ---------> @tiny_tool reads names, docstrings, type hints -> ToolSpec
+[Step 1: Code Reflection] ---------> @tool reads names, docstrings, type hints -> ToolSpec
      |                                (runs once, at import/registration time)
      v
 [Step 2: Linear Prompt Injection] -> query + compact tool lines + output grammar -> one prompt string
@@ -191,7 +191,7 @@ All three failures share one root cause: **the framework relies on the model's i
 ```mermaid
 flowchart LR
     subgraph E1["Aisha Amna, Engineer 1: Reflection and Prompt"]
-        R["reflection.py<br/>@tiny_tool"] --> REG["registry.py<br/>ToolRegistry"]
+        R["reflection.py<br/>@tool"] --> REG["registry.py<br/>ToolRegistry"]
         REG --> PR["prompt.py<br/>render_prompt / render_repair_prompt"]
     end
     subgraph E2["Deepak, Engineer 2: Inference Transport"]
@@ -208,7 +208,7 @@ flowchart LR
         CO --> EX
     end
     subgraph E4["Dhyanesh, Engineer 4: Orchestrator and Evaluation"]
-        AG["agent.py<br/>TinyAgent.run"]
+        AG["agent.py<br/>SLMRouter.run"]
         SIM["backends/simulator.py<br/>Simulated + Replay backends"]
         EV["eval/ harness + fault corpus"]
         CLI["cli.py, examples, packaging"]
@@ -232,7 +232,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     participant App as Host application
-    participant A as TinyAgent (agent.py)
+    participant A as SLMRouter (agent.py)
     participant P as prompt.py
     participant B as Backend
     participant X as parser.py
@@ -283,19 +283,19 @@ Tool exceptions and timeouts are **never** retried. A tool may have side effects
 
 ---
 
-## 4. Step 1: Zero-Config Tool Reflection (`@tiny_tool`)
+## 4. Step 1: Zero-Config Tool Reflection (`@tool`)
 
 The decorator uses `inspect.signature` and `typing.get_type_hints` to build a `ToolSpec` once, at registration time.
 
 ```python
-from tinyagent import tiny_tool
+from slmrouter import tool
 
-@tiny_tool
+@tool
 def get_weather(city: str, unit: str = "c") -> str:
     """Current weather for a city."""
     ...
 
-@tiny_tool
+@tool
 def add(a: int, b: int) -> int:
     """Add two integers."""
     return a + b
@@ -418,10 +418,10 @@ The parser accepts the near misses small models commonly produce. It never guess
 
 ## 8. Frozen Interface Contracts (Phase 0)
 
-These definitions live in `tinyagent/types.py` and `tinyagent/errors.py`. Aisha Amna commits them in Phase 0. After freeze, any change requires sign-off from all four engineers (Section 12).
+These definitions live in `slmrouter/types.py` and `slmrouter/errors.py`. Aisha Amna commits them in Phase 0. After freeze, any change requires sign-off from all four engineers (Section 12).
 
 ```python
-# tinyagent/types.py
+# slmrouter/types.py
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol, Sequence, Union
@@ -496,23 +496,23 @@ class AgentResult:
 ```
 
 ```python
-# tinyagent/errors.py
+# slmrouter/errors.py
 PARSE_CODES = frozenset({"E_EMPTY", "E_NO_PREFIX", "E_BAD_SYNTAX"})
 EXEC_REPAIRABLE = frozenset({"E_UNKNOWN_TOOL", "E_MISSING_ARG", "E_UNEXPECTED_ARG", "E_TYPE_COERCION"})
 EXEC_TERMINAL = frozenset({"E_TOOL_EXCEPTION", "E_TOOL_TIMEOUT"})
 BACKEND_CODES = frozenset({"E_BACKEND_UNREACHABLE", "E_BACKEND_TIMEOUT", "E_BACKEND_HTTP", "E_BACKEND_PROTOCOL"})
 AGENT_CODES = frozenset({"E_FINAL_NOT_ALLOWED", "E_RETRY_EXHAUSTED"})
 
-class TinyAgentError(Exception):
+class SLMRouterError(Exception):
     """Base class. Only raised for programmer errors and backend failures, never for model output."""
 
-class BackendError(TinyAgentError):
+class BackendError(SLMRouterError):
     def __init__(self, code: str, detail: str) -> None:
         super().__init__(f"{code}: {detail}")
         self.code = code
         self.detail = detail
 
-class CoercionError(TinyAgentError, ValueError):
+class CoercionError(SLMRouterError, ValueError):
     pass
 ```
 
@@ -520,7 +520,7 @@ Public API per module. Owners may add private helpers (leading underscore) but m
 
 | Module                    | Public API                                                                                                                                                                                                                       | Owner      |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `reflection.py`         | `tiny_tool(func=None, *, name=None, registry=None)`                                                                                                                                                                            | Aisha Amna |
+| `reflection.py`         | `tool(func=None, *, name=None, registry=None)`                                                                                                                                                                            | Aisha Amna |
 | `registry.py`           | `ToolRegistry.register(spec)`, `.get(name) -> ToolSpec \| None`, `.all() -> tuple[ToolSpec, ...]`, `.names() -> tuple[str, ...]`; module-level `default_registry`                                                       | Aisha Amna |
 | `prompt.py`             | `render_prompt(query, tools, *, max_query_chars=2000) -> str`, `render_repair_prompt(prompt, previous_output, code, detail) -> str`, `render_tool_line(spec) -> str`, `estimate_tokens(text) -> int`, `STOP_SEQUENCES` | Aisha Amna |
 | `backends/ollama.py`    | `OllamaBackend(model, *, host="http://127.0.0.1:11434", timeout_s=60.0, seed=42, num_ctx=None)`                                                                                                                                | Deepak     |
@@ -528,7 +528,7 @@ Public API per module. Owners may add private helpers (leading underscore) but m
 | `parser.py`             | `parse(text: str) -> ParseOutcome`                                                                                                                                                                                             | Dharshini  |
 | `coercion.py`           | `coerce(raw: str, param: ParamSpec) -> Any` (raises `CoercionError`)                                                                                                                                                         | Dharshini  |
 | `executor.py`           | `execute(action, registry, *, timeout_s=10.0, max_output_chars=4000) -> ToolResult`                                                                                                                                            | Dharshini  |
-| `agent.py`              | `TinyAgent(backend, registry=None, *, max_repairs=1, require_tool=False, max_tokens=96, tool_timeout_s=10.0)`, `.run(query: str) -> AgentResult`                                                                             | Dhyanesh   |
+| `agent.py`              | `SLMRouter(backend, registry=None, *, max_repairs=1, require_tool=False, max_tokens=96, tool_timeout_s=10.0)`, `.run(query: str) -> AgentResult`                                                                             | Dhyanesh   |
 | `backends/simulator.py` | `SimulatedBackend(script_or_fn)`, `ReplayBackend(path)`, `RecordingBackend(inner, path)`                                                                                                                                   | Dhyanesh   |
 | `demo_tools.py`         | `build_registry() -> ToolRegistry` (the four demo tools used by the CLI, examples and evaluation)                                                                                                                              | Dhyanesh   |
 
@@ -544,7 +544,7 @@ Public API per module. Owners may add private helpers (leading underscore) but m
 | NFR-4  | Model calls per query                  | <= `1 + max_repairs`; `max_repairs` in {0, 1, 2}                                                                                                                      | Property test over the full fault corpus (E4)            |
 | NFR-5  | Recoverable-fault parse rate           | 100% of fault-corpus cases marked `recover`                                                                                                                             | Fault corpus (E3, E4)                                    |
 | NFR-6  | False execution rate                   | 0: no corrupted output ever executes a wrong tool or wrong argument values                                                                                               | Fault-corpus ground truth (E4)                           |
-| NFR-7  | No code execution of model text        | Zero calls to builtins `eval`, `exec`, `compile`, `__import__`, and zero uses of `ast.literal_eval` or `pickle` in `tinyagent/` (`re.compile` is allowed) | AST-based static gate in CI (E4)                         |
+| NFR-7  | No code execution of model text        | Zero calls to builtins `eval`, `exec`, `compile`, `__import__`, and zero uses of `ast.literal_eval` or `pickle` in `slmrouter/` (`re.compile` is allowed) | AST-based static gate in CI (E4)                         |
 | NFR-8  | Parser latency                         | p99 < 1 ms per output on a laptop CPU                                                                                                                                    | Microbenchmark (E3)                                      |
 | NFR-9  | Framework overhead excluding inference | < 5 ms per query, median                                                                                                                                                 | Benchmark with `SimulatedBackend` (E4)                  |
 | NFR-10 | Live tool-selection accuracy (stretch) | >= 90% on the 50-query benchmark with `llama3:8b` or `mistral:7b`                                                                                                     | Live eval (E4); reported as measured, never extrapolated |
@@ -557,7 +557,7 @@ NFR-10 is a measurement goal, not a guarantee. If no suitable hardware is availa
 
 **Constraint:** the team has no labelled dataset of SLM tool-calling failures, and GPUs may be scarce or absent during the sprint. Live 8B inference is slow and is not reproducible across machines and model versions.
 
-**Asset:** TinyAgent's output grammar is small and fully specified, so failures can be generated **forward**. Start from a known-correct answer and apply a known corruption. Ground truth is then correct by construction, with no human labelling.
+**Asset:** SLMRouter's output grammar is small and fully specified, so failures can be generated **forward**. Start from a known-correct answer and apply a known corruption. Ground truth is then correct by construction, with no human labelling.
 
 ```mermaid
 flowchart LR
@@ -565,7 +565,7 @@ flowchart LR
     C --> FI["Seeded fault injector<br/>F01..F16"]
     FI --> O["Corrupted output +<br/>expected verdict:<br/>recover / repair / reject"]
     O --> SB["SimulatedBackend<br/>implements Backend"]
-    SB --> AG["TinyAgent.run"]
+    SB --> AG["SLMRouter.run"]
     AG --> CHK["Assert verdict, tool, args,<br/>model_calls within ceiling,<br/>zero false execution"]
     LIVE["Optional live Ollama run"] --> REC["RecordingBackend -> JSONL"]
     REC --> RB["ReplayBackend"]
@@ -587,7 +587,7 @@ The result: the full pipeline is tested deterministically on any laptop in secon
 ## 11. Repository Layout and Ownership Map
 
 ```text
-tinyagent/
+slmrouter/
   __init__.py              E4  public re-exports only
   types.py                 E1  FROZEN contract (all sign-off to change)
   errors.py                E1  FROZEN contract (all sign-off to change)
@@ -604,8 +604,8 @@ tinyagent/
   coercion.py              E3
   executor.py              E3
   agent.py                 E4
-  cli.py                   E4  `tinyagent` console script
-  __main__.py              E4  `python -m tinyagent`
+  cli.py                   E4  `slmrouter` console script
+  __main__.py              E4  `python -m slmrouter`
   demo_tools.py            E4  demo tools shipped with the package (CLI, examples, eval)
   py.typed                 E4  PEP 561 marker
 tests/
@@ -633,12 +633,12 @@ eval/
   report*.{json,md}        E4  simulated and live evaluation reports
 bench/
   bench_parser.py          E3  NFR-8 microbenchmark
-examples/                  E4  quickstart.py, flask_endpoint.py; demo_tools.py re-exports tinyagent.demo_tools
+examples/                  E4  quickstart.py, flask_endpoint.py; demo_tools.py re-exports slmrouter.demo_tools
 .github/workflows/ci.yml   E4
 pyproject.toml             E4
 README.md                  E4
 ARCHITECTURE.md            All four engineers (change by consensus)
-prd/                       One file per engineer; owner edits only their own
+prd/                       Internal sprint PRDs (not in the public repository)
 ```
 
 Each file has exactly one owner. Non-owners may open a change request but may not commit to it.
@@ -666,7 +666,7 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 | --------------------- | ---------------- | ------------------------------------------------------------------------------- |
 | 0. Contract freeze    | T+0:00 to T+0:45 | `types.py` and `errors.py` merged; all four engineers sign off on Section 8 |
 | 1. Isolated build     | T+0:45 to T+4:30 | Each module passes its own unit tests using stubs only                          |
-| 2. Integration        | T+4:30 to T+6:00 | `TinyAgent.run` passes the full simulated fault corpus                        |
+| 2. Integration        | T+4:30 to T+6:00 | `SLMRouter.run` passes the full simulated fault corpus                        |
 | 3. Hardening and eval | T+6:00 to T+7:30 | NFR-1 to NFR-9 green; NFR-10 measured if hardware exists                        |
 | 4. Demo freeze        | T+7:30 to T+8:00 | Tagged build; README quickstart verified in a clean venv                        |
 
@@ -680,7 +680,7 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 - Complex parameter types (`list`, `dict`, nested objects)
 - Async API and token streaming
 - Cloud LLM backends
-- OS-level sandboxing of tools. TinyAgent controls *which* registered function runs and *with what* validated arguments; what the function itself does is the application developer's responsibility.
+- OS-level sandboxing of tools. SLMRouter controls *which* registered function runs and *with what* validated arguments; what the function itself does is the application developer's responsibility.
 
 ## 15. Known Risks
 
@@ -698,3 +698,4 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | 1.0     | Sprint     | Sprint baseline                                                                                                                                                     | All four engineers |
 | 1.1     | 2026-10-13 | `LlamaCppBackend` uses `/v1/chat/completions` by default, new `chat_template` parameter (Sections 3.2, 6, 8); `demo_tools` moved into the package (Sections 8, 11); layout updated to match the repository | All four engineers |
+| 1.2     | 2026-10-13 | Project renamed from TinyAgent to SLMRouter for public release: package `slmrouter`, class `SLMRouter`, decorator `@tool`, base exception `SLMRouterError`; released under Apache-2.0 | Dhyanesh Mahendiran |

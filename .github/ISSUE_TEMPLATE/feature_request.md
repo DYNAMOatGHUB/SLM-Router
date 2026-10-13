@@ -10,6 +10,6 @@ labels: enhancement
 
 **Alternatives you considered**
 
-<!-- Note: TinyAgent deliberately keeps one tool call per query, no runtime
+<!-- Note: SLMRouter deliberately keeps one tool call per query, no runtime
 dependencies and a bounded number of model calls. Please say how the idea fits
 those constraints. -->

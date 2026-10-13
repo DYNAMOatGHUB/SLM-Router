@@ -5,11 +5,11 @@ from __future__ import annotations
 import threading
 import unittest
 
-from tinyagent.demo_tools import build_registry
-from tinyagent import TinyAgent
-from tinyagent.backends.simulator import SimulatedBackend
-from tinyagent.errors import BackendError
-from tinyagent.types import Completion
+from slmrouter.demo_tools import build_registry
+from slmrouter import SLMRouter
+from slmrouter.backends.simulator import SimulatedBackend
+from slmrouter.errors import BackendError
+from slmrouter.types import Completion
 
 
 class FailingBackend:
@@ -29,7 +29,7 @@ class IntegrationTest(unittest.TestCase):
 
     def run_agent(self, script, **kwargs):
         backend = SimulatedBackend(script)
-        return TinyAgent(backend, self.registry, **kwargs).run("What is 2+3?"), backend
+        return SLMRouter(backend, self.registry, **kwargs).run("What is 2+3?"), backend
 
     def test_happy_path(self) -> None:  # A4-1
         result, _ = self.run_agent(['ACTION: add(a="2", b="3")'])
@@ -69,7 +69,7 @@ class IntegrationTest(unittest.TestCase):
 
     def test_backend_error_not_retried(self) -> None:  # A4-6
         backend = FailingBackend()
-        result = TinyAgent(backend, self.registry, max_repairs=2).run("add")
+        result = SLMRouter(backend, self.registry, max_repairs=2).run("add")
         self.assertEqual((result.status, result.provenance), ("error", "none"))
         self.assertEqual((result.error_code, result.model_calls, backend.calls),
                          ("E_BACKEND_TIMEOUT", 1, 1))
@@ -90,11 +90,11 @@ class IntegrationTest(unittest.TestCase):
 
     def test_empty_query_is_programmer_error(self) -> None:  # R4-14
         with self.assertRaises(ValueError):
-            TinyAgent(SimulatedBackend([]), self.registry).run("   ")
+            SLMRouter(SimulatedBackend([]), self.registry).run("   ")
 
     def test_shared_agent_is_thread_safe(self) -> None:  # R4-17
         backend = SimulatedBackend(lambda prompt, index: 'ACTION: add(a="2", b="3")')
-        agent = TinyAgent(backend, self.registry)
+        agent = SLMRouter(backend, self.registry)
         results = []
         lock = threading.Lock()
 

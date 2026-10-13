@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Callable, Sequence
 
-from tinyagent.types import Backend, Completion
+from slmrouter.types import Backend, Completion
 
 
 def _hash(prompt: str) -> str:
@@ -30,7 +30,7 @@ class SimulatedBackend:
     def complete(
         self, prompt: str, *, stop: Sequence[str], max_tokens: int
     ) -> Completion:
-        from tinyagent.prompt import estimate_tokens
+        from slmrouter.prompt import estimate_tokens
 
         with self._lock:
             index = len(self.prompts)

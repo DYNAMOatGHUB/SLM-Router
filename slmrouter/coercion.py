@@ -11,8 +11,8 @@ import math
 import re
 from typing import Any
 
-from tinyagent.errors import CoercionError
-from tinyagent.types import ParamSpec
+from slmrouter.errors import CoercionError
+from slmrouter.types import ParamSpec
 
 # ASCII digits only: int() would also accept other Unicode digit scripts.
 _INT = re.compile(r"([+-]?[0-9]+)(?:\.0+)?")

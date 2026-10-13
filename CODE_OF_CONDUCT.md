@@ -9,7 +9,7 @@ are not tolerated in issues, pull requests or any other project space.
 
 ## Reporting
 
-If someone's behaviour concerns you, contact a maintainer (Aisha Amna,
-Deepak, Dharshini or Dhyanesh) privately. Reports are handled confidentially.
-Maintainers may remove comments, commits or other contributions that break this
+If someone's behaviour concerns you, contact the maintainer, Dhyanesh
+Mahendiran, privately through GitHub (@DYNAMOatGHUB). Reports are handled
+confidentially. The maintainer may remove comments, commits or other contributions that break this
 code, and may ban contributors who repeatedly do so.

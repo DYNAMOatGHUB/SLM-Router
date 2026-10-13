@@ -1,11 +1,11 @@
-# Contributing to TinyAgent
+# Contributing to SLMRouter
 
 Thank you for helping. Bug reports, questions, documentation fixes and code are
 all welcome.
 
 ## Reporting a bug or asking for a feature
 
-Open an issue using one of the templates. For a bug, include the TinyAgent
+Open an issue using one of the templates. For a bug, include the SLMRouter
 version, Python version, runtime (Ollama or llama.cpp, with its version), the
 model, and the smallest code that reproduces the problem. If it is a routing
 problem, run the CLI with `--verbose` and paste the printed prompt and raw model
@@ -16,11 +16,11 @@ Security problems must not be reported in public issues. See
 
 ## Development setup
 
-TinyAgent has no runtime dependencies and no development dependencies beyond
+SLMRouter has no runtime dependencies and no development dependencies beyond
 Python 3.10 or newer.
 
 ```bash
-git clone https://github.com/LLM-project-Team/TinyAgent-SLM.git
+git clone https://github.com/DYNAMOatGHUB/TinyAgent-SLM.git
 cd TinyAgent-SLM
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
@@ -36,7 +36,7 @@ python -m bench.bench_parser                # parser latency benchmark
 
 No model is needed for any of these. To try a live model, install
 [Ollama](https://ollama.com), run `ollama pull llama3:8b`, then
-`python -m tinyagent --backend ollama "What is 2+3?" --verbose`.
+`python -m slmrouter --backend ollama "What is 2+3?" --verbose`.
 
 ## Rules every change must follow
 
@@ -45,16 +45,16 @@ breaks one will not be merged.
 
 - **No runtime dependencies.** Standard library only (`tests/test_no_deps.py`).
 - **Model text never becomes code.** No `eval`, `exec`, `compile`,
-  `__import__`, `ast.literal_eval`, `pickle` or `importlib` in `tinyagent/`
+  `__import__`, `ast.literal_eval`, `pickle` or `importlib` in `slmrouter/`
   (`tests/test_static_gate.py`).
 - **Bounded model calls.** A query uses at most `1 + max_repairs` model calls.
 - **Fail closed.** Ambiguous model output is rejected with an error code, never
   guessed.
 - **Tools are never retried** after they raise or time out.
-- The public signatures and the contracts in `tinyagent/types.py` and
-  `tinyagent/errors.py` are listed in Section 8 of
-  [ARCHITECTURE.md](ARCHITECTURE.md). Changing them needs agreement from all
-  maintainers (Section 12). Open an issue to discuss first.
+- The public signatures and the contracts in `slmrouter/types.py` and
+  `slmrouter/errors.py` are listed in Section 8 of
+  [ARCHITECTURE.md](ARCHITECTURE.md). Open an issue to discuss a change to them
+  before writing code.
 - Changes to the prompt template need a live evaluation run showing no
   regression (`python -m eval.run_eval --mode live ...`).
 
@@ -73,7 +73,7 @@ breaks one will not be merged.
 ## Releasing (maintainers)
 
 1. Move the "Unreleased" entries in `CHANGELOG.md` under the new version.
-2. Set the same version in `pyproject.toml` and `tinyagent/__init__.py`.
+2. Set the same version in `pyproject.toml` and `slmrouter/__init__.py`.
 3. Merge to `main`, then tag and push: `git tag v0.2.0 && git push origin v0.2.0`.
 
 The `Release` workflow checks that the tag matches the version, runs the tests,
@@ -82,4 +82,4 @@ publishes to PyPI and creates a GitHub release.
 ## License
 
 By contributing, you agree that your contributions are licensed under the
-[MIT License](LICENSE).
+[Apache License 2.0](LICENSE), as described in Section 5 of that license.

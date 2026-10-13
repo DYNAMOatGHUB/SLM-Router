@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import unittest
 
-from tinyagent.coercion import coerce
-from tinyagent.errors import CoercionError
-from tinyagent.types import ParamSpec
+from slmrouter.coercion import coerce
+from slmrouter.errors import CoercionError
+from slmrouter.types import ParamSpec
 
 
 def _param(type_name: str, optional: bool = False) -> ParamSpec:

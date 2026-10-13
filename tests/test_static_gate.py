@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1] / "tinyagent"
+ROOT = Path(__file__).resolve().parents[1] / "slmrouter"
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "literal_eval"}
 FORBIDDEN_IMPORTS = {"pickle", "importlib"}
 

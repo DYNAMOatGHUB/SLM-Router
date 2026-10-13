@@ -1,19 +1,19 @@
-"""Optional Flask integration; Flask is not a TinyAgent dependency.
+"""Optional Flask integration; Flask is not a SLMRouter dependency.
 
 Run: pip install flask && flask --app examples.flask_endpoint run
 """
 
 from flask import Flask, jsonify, request
 
-from tinyagent import TinyAgent
-from tinyagent.backends import OllamaBackend
-from tinyagent.demo_tools import build_registry
+from slmrouter import SLMRouter
+from slmrouter.backends import OllamaBackend
+from slmrouter.demo_tools import build_registry
 
 MAX_QUERY_CHARS = 2000
 
 app = Flask(__name__)
 # One shared agent is safe: run() keeps no state between calls (R4-17).
-agent = TinyAgent(OllamaBackend("llama3:8b"), build_registry(), require_tool=True)
+agent = SLMRouter(OllamaBackend("llama3:8b"), build_registry(), require_tool=True)
 
 
 @app.post("/ask")

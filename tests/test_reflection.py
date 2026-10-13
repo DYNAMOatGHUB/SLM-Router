@@ -1,14 +1,14 @@
 import unittest
 from typing import Optional
-from tinyagent.reflection import tiny_tool
-from tinyagent.registry import ToolRegistry
+from slmrouter.reflection import tool
+from slmrouter.registry import ToolRegistry
 
 class TestReflection(unittest.TestCase):
     def setUp(self):
         self.registry = ToolRegistry()
 
     def test_reflection_basic(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def f(city: str, unit: str = "c") -> str:
             pass
         
@@ -29,7 +29,7 @@ class TestReflection(unittest.TestCase):
         self.assertFalse(p2.optional)
 
     def test_reflection_types(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def f(a: int, b: float, flag: bool = False):
             pass
         
@@ -47,7 +47,7 @@ class TestReflection(unittest.TestCase):
         self.assertEqual(p3.default, False)
 
     def test_reflection_missing_annotation(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def f(x):
             pass
             
@@ -58,7 +58,7 @@ class TestReflection(unittest.TestCase):
         self.assertTrue(p1.required)
 
     def test_reflection_optional(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def f(n: Optional[int] = None):
             pass
             
@@ -71,24 +71,24 @@ class TestReflection(unittest.TestCase):
 
     def test_unsupported_type(self):
         with self.assertRaisesRegex(TypeError, "unsupported type"):
-            @tiny_tool(registry=self.registry)
+            @tool(registry=self.registry)
             def f(items: list):
                 pass
 
     def test_unsupported_varargs(self):
         with self.assertRaisesRegex(TypeError, "unsupported kind"):
-            @tiny_tool(registry=self.registry)
+            @tool(registry=self.registry)
             def f(*args):
                 pass
 
     def test_unsupported_positional_only(self):
         with self.assertRaisesRegex(TypeError, "unsupported kind"):
-            @tiny_tool(registry=self.registry)
+            @tool(registry=self.registry)
             def f(a, /, b):
                 pass
 
     def test_docstring_extraction(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def f():
             """
             Get weather.
@@ -100,7 +100,7 @@ class TestReflection(unittest.TestCase):
         self.assertEqual(spec.description, "Get weather.")
 
     def test_decorator_transparency(self):
-        @tiny_tool(registry=self.registry)
+        @tool(registry=self.registry)
         def add(a: int, b: int) -> int:
             return a + b
             

@@ -1,1 +1,1 @@
-"""TinyAgent microbenchmarks."""
+"""SLMRouter microbenchmarks."""

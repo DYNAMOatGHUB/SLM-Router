@@ -1,6 +1,6 @@
 import unittest
-from tinyagent.prompt import render_prompt, estimate_tokens, render_tool_line, render_repair_prompt, _REPAIR_REASONS
-from tinyagent.types import ToolSpec, ParamSpec
+from slmrouter.prompt import render_prompt, estimate_tokens, render_tool_line, render_repair_prompt, _REPAIR_REASONS
+from slmrouter.types import ToolSpec, ParamSpec
 
 class TestPrompt(unittest.TestCase):
     def test_golden_prompt(self):

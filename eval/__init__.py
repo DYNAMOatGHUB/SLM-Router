@@ -1,1 +1,1 @@
-"""Offline and live TinyAgent evaluation."""
+"""Offline and live SLMRouter evaluation."""

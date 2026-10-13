@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tinyagent.agent import TinyAgent
+from slmrouter.agent import SLMRouter
 
 
 @dataclasses.dataclass(frozen=True)
@@ -117,40 +117,40 @@ def _execute(action, registry, *, timeout_s=10.0, max_output_chars=4000):
 class AgentTest(unittest.TestCase):
     def setUp(self):
         self.modules = {
-            "tinyagent.registry": _module("tinyagent.registry", default_registry=Registry()),
-            "tinyagent.types": _module(
-                "tinyagent.types", Backend=object, Completion=Completion, AgentResult=AgentResult,
+            "slmrouter.registry": _module("slmrouter.registry", default_registry=Registry()),
+            "slmrouter.types": _module(
+                "slmrouter.types", Backend=object, Completion=Completion, AgentResult=AgentResult,
                 ParsedAction=ParsedAction, ParsedFinal=ParsedFinal,
                 ParseFailure=ParseFailure, ToolResult=ToolResult,
             ),
-            "tinyagent.errors": _module(
-                "tinyagent.errors", BackendError=BackendError,
+            "slmrouter.errors": _module(
+                "slmrouter.errors", BackendError=BackendError,
                 EXEC_TERMINAL=frozenset({"E_TOOL_EXCEPTION", "E_TOOL_TIMEOUT"}),
             ),
-            "tinyagent.prompt": _module(
-                "tinyagent.prompt", STOP_SEQUENCES=("\n",),
+            "slmrouter.prompt": _module(
+                "slmrouter.prompt", STOP_SEQUENCES=("\n",),
                 estimate_tokens=lambda text: (len(text) + 3) // 4,
                 render_prompt=lambda query, tools: f"ORIGINAL {query}",
                 render_repair_prompt=lambda original, previous, code, detail:
                     f"{original} repair {code} {previous[:200]}",
             ),
-            "tinyagent.parser": _module("tinyagent.parser", parse=_parse),
-            "tinyagent.executor": _module("tinyagent.executor", execute=_execute),
+            "slmrouter.parser": _module("slmrouter.parser", parse=_parse),
+            "slmrouter.executor": _module("slmrouter.executor", execute=_execute),
         }
         self.patcher = patch.dict(sys.modules, self.modules)
         self.patcher.start()
         self.addCleanup(self.patcher.stop)
 
     def test_happy_path_and_final(self):
-        tool = TinyAgent(ScriptBackend(['ACTION: add(a="2", b="3")'])).run("add")
+        tool = SLMRouter(ScriptBackend(['ACTION: add(a="2", b="3")'])).run("add")
         self.assertEqual((tool.status, tool.text, tool.provenance, tool.model_calls),
                          ("tool", "5", "tool", 1))
-        final = TinyAgent(ScriptBackend(["FINAL: Paris"])).run("capital")
+        final = SLMRouter(ScriptBackend(["FINAL: Paris"])).run("capital")
         self.assertEqual((final.status, final.provenance), ("final", "model"))
 
     def test_repair_and_original_prompt(self):
         backend = ScriptBackend(["ACTION: add_numbers(a=2,b=3)", 'ACTION: add(a="2", b="3")'])
-        result = TinyAgent(backend).run("add")
+        result = SLMRouter(backend).run("add")
         self.assertEqual((result.status, result.model_calls), ("tool", 2))
         self.assertTrue(backend.prompts[1].startswith(backend.prompts[0]))
         self.assertEqual(len(result.raw_outputs), 2)
@@ -159,28 +159,28 @@ class AgentTest(unittest.TestCase):
         for repairs in (0, 1, 2):
             with self.subTest(repairs=repairs):
                 backend = ScriptBackend(["garbage"] * (repairs + 1))
-                result = TinyAgent(backend, max_repairs=repairs).run("add")
+                result = SLMRouter(backend, max_repairs=repairs).run("add")
                 self.assertEqual(result.error_code, "E_RETRY_EXHAUSTED")
                 self.assertEqual(result.model_calls, repairs + 1)
                 self.assertIn("E_NO_PREFIX", result.text)
 
     def test_terminal_failures_do_not_retry(self):
         backend = ScriptBackend([BackendError("E_BACKEND_TIMEOUT", "timed out")])
-        result = TinyAgent(backend).run("add")
+        result = SLMRouter(backend).run("add")
         self.assertEqual((result.error_code, result.model_calls),
                          ("E_BACKEND_TIMEOUT", 1))
-        result = TinyAgent(ScriptBackend(["ACTION: boom()"])).run("boom")
+        result = SLMRouter(ScriptBackend(["ACTION: boom()"])).run("boom")
         self.assertEqual((result.error_code, result.model_calls),
                          ("E_TOOL_EXCEPTION", 1))
 
     def test_final_requires_tool(self):
-        result = TinyAgent(ScriptBackend(["FINAL: Paris", "FINAL: Paris"]),
+        result = SLMRouter(ScriptBackend(["FINAL: Paris", "FINAL: Paris"]),
                            require_tool=True).run("capital")
         self.assertEqual(result.error_code, "E_RETRY_EXHAUSTED")
         self.assertEqual(result.model_calls, 2)
 
     def test_prior_execution_is_retained_on_final(self):
-        result = TinyAgent(
+        result = SLMRouter(
             ScriptBackend(["ACTION: add_numbers(a=2,b=3)", "FINAL: unknown"])
         ).run("add")
         self.assertEqual(result.status, "final")
@@ -189,7 +189,7 @@ class AgentTest(unittest.TestCase):
 
     def test_repair_prompts_do_not_grow(self):
         backend = ScriptBackend(["x" * 1000] * 3)
-        result = TinyAgent(backend, max_repairs=2).run("add")
+        result = SLMRouter(backend, max_repairs=2).run("add")
         self.assertEqual(result.model_calls, 3)
         original = backend.prompts[0]
         for prompt in backend.prompts[1:]:
@@ -198,21 +198,21 @@ class AgentTest(unittest.TestCase):
 
     def test_constructor_validation(self):
         with self.assertRaises(ValueError):
-            TinyAgent(ScriptBackend([]), max_repairs=3)
+            SLMRouter(ScriptBackend([]), max_repairs=3)
         with self.assertRaisesRegex(ValueError, "no tools registered"):
-            TinyAgent(ScriptBackend([]), registry=_module("empty", all=lambda: ()))
+            SLMRouter(ScriptBackend([]), registry=_module("empty", all=lambda: ()))
 
     def test_record_and_replay_exact_prompt(self):
-        original_module = sys.modules.get("tinyagent.backends.simulator")
+        original_module = sys.modules.get("slmrouter.backends.simulator")
 
         def restore_module():
             if original_module is None:
-                sys.modules.pop("tinyagent.backends.simulator", None)
+                sys.modules.pop("slmrouter.backends.simulator", None)
             else:
-                sys.modules["tinyagent.backends.simulator"] = original_module
+                sys.modules["slmrouter.backends.simulator"] = original_module
 
         self.addCleanup(restore_module)
-        from tinyagent.backends.simulator import RecordingBackend, ReplayBackend, SimulatedBackend
+        from slmrouter.backends.simulator import RecordingBackend, ReplayBackend, SimulatedBackend
 
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "run.jsonl"
@@ -246,9 +246,9 @@ class CorpusShapeTest(unittest.TestCase):
 class AishaIntegrationTest(unittest.TestCase):
     def test_reflection_prompt_and_simulator_contract(self):
         from examples.demo_tools import build_registry
-        from tinyagent.backends.simulator import SimulatedBackend
-        from tinyagent.prompt import STOP_SEQUENCES, render_prompt
-        from tinyagent.types import Completion
+        from slmrouter.backends.simulator import SimulatedBackend
+        from slmrouter.prompt import STOP_SEQUENCES, render_prompt
+        from slmrouter.types import Completion
 
         registry = build_registry()
         prompt = render_prompt("What is 2+3?", registry.all())

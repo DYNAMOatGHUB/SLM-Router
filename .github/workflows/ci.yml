@@ -47,4 +47,4 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           "$RUNNER_TEMP/venv/bin/python" "$GITHUB_WORKSPACE/examples/quickstart.py" --backend sim
-          "$RUNNER_TEMP/venv/bin/tinyagent" --backend sim "What is 2+3?"
+          "$RUNNER_TEMP/venv/bin/slmrouter" --backend sim "What is 2+3?"

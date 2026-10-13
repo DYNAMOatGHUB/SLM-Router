@@ -1,34 +1,53 @@
-# TinyAgent
+# SLMRouter
 
-TinyAgent is a zero-dependency Python library (stdlib only, Python >= 3.10) that
+[![PyPI](https://img.shields.io/pypi/v/slmrouter)](https://pypi.org/project/slmrouter/)
+[![Python](https://img.shields.io/pypi/pyversions/slmrouter)](https://pypi.org/project/slmrouter/)
+[![CI](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/actions/workflows/ci.yml/badge.svg)](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/LICENSE)
+
+**Reliable tool calling for small local LLMs.** Zero dependencies, bounded model
+calls, no `eval`.
+
+```console
+$ slmrouter --backend ollama --model llama3:8b "What's the weather in Pune?"
+status: tool
+provenance: tool
+model_calls: 1
+text: Pune: 31 c, clear
+
+$ slmrouter --backend ollama --model llama3:8b "Who wrote Hamlet?"
+status: final
+provenance: model
+model_calls: 1
+text: William Shakespeare
+```
+
+SLMRouter is a zero-dependency Python library (stdlib only, Python >= 3.10) that
 lets a 7B/8B local language model, served by Ollama or llama.cpp, reliably call
 your Python functions.
 
 Agent frameworks built for frontier cloud models assume the model can follow
 long system prompts, emit valid JSON and recover from its own errors. A local
 8B model does not, which leads to context exhaustion, JSON parse crashes and
-retry loops that never end. TinyAgent instead treats the model as a
+retry loops that never end. SLMRouter instead treats the model as a
 **deterministic router**: each query becomes one bounded decision, either call
 one registered tool with arguments, or return a final answer. A query uses at
 most `1 + max_repairs` model calls (`max_repairs` is 0, 1 or 2), so infinite
 loops are structurally impossible. The full design and tradeoffs are in
-[ARCHITECTURE.md](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/ARCHITECTURE.md).
+[ARCHITECTURE.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/ARCHITECTURE.md).
 
 ## Install
 
 ```bash
-pip install tinyagent-slm
+pip install slmrouter
 ```
 
-The package is published on PyPI as `tinyagent-slm`; the import name is
-`tinyagent`. It has no runtime dependencies. (An unrelated PyPI package called
-`tinyagent` also uses the `tinyagent` import name, so do not install both in the
-same environment.)
+It has no runtime dependencies.
 
 To install the latest code from GitHub instead:
 
 ```bash
-pip install "git+https://github.com/LLM-project-Team/TinyAgent-SLM.git"
+pip install "git+https://github.com/DYNAMOatGHUB/TinyAgent-SLM.git"
 ```
 
 For live use, run a local [Ollama](https://ollama.com) or llama.cpp server.
@@ -36,17 +55,17 @@ For live use, run a local [Ollama](https://ollama.com) or llama.cpp server.
 ## Quickstart
 
 ```python
-from tinyagent import TinyAgent, ToolRegistry, tiny_tool
-from tinyagent.backends import OllamaBackend
+from slmrouter import SLMRouter, ToolRegistry, tool
+from slmrouter.backends import OllamaBackend
 
 registry = ToolRegistry()
 
-@tiny_tool(registry=registry)
+@tool(registry=registry)
 def add(a: int, b: int) -> int:
     """Add two integers."""
     return a + b
 
-agent = TinyAgent(OllamaBackend("mistral:latest"), registry)
+agent = SLMRouter(OllamaBackend("mistral:latest"), registry)
 result = agent.run("What is 2+3?")
 print(f"{result.text} (provenance: {result.provenance})")  # 5 (provenance: tool)
 ```
@@ -57,13 +76,13 @@ Without a model, use the scripted backend:
 ### Command line
 
 ```bash
-tinyagent --backend sim                                   # scripted, prints [SIMULATED]
-tinyagent --backend ollama --model mistral:latest "What's the weather in Pune?"
-tinyagent --backend llamacpp --host http://127.0.0.1:8080 "Add 4 and 9" --verbose
+slmrouter --backend sim                                   # scripted, prints [SIMULATED]
+slmrouter --backend ollama --model mistral:latest "What's the weather in Pune?"
+slmrouter --backend llamacpp --host http://127.0.0.1:8080 "Add 4 and 9" --verbose
 ```
 
-`python -m tinyagent` is equivalent. The CLI routes to the demo tools in
-`tinyagent/demo_tools.py`; exit code is 1 when `status` is `error`.
+`python -m slmrouter` is equivalent. The CLI routes to the demo tools in
+`slmrouter/demo_tools.py`; exit code is 1 when `status` is `error`.
 
 ## Reading results
 
@@ -132,7 +151,7 @@ benchmark queries, against 50 of 50 with the template.
 
 | Run | Command | Result |
 |---|---|---|
-| Simulated (no model, CI) | `python -m eval.run_eval --mode sim` | 795 fault-injection cases: 280/280 recoverable faults recovered on the first call, **0 false executions**, max 2 model calls (ceiling 2), median framework overhead 0.05 ms — [report](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/eval/report.md) |
+| Simulated (no model, CI) | `python -m eval.run_eval --mode sim` | 795 fault-injection cases: 280/280 recoverable faults recovered on the first call, **0 false executions**, max 2 model calls (ceiling 2), median framework overhead 0.05 ms — [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report.md) |
 | Live | `python -m eval.run_eval --mode live --backend ollama --model llama3:8b --record eval/fixtures/live-llama3.jsonl --out eval/report_live_llama3.json` | See the table below |
 | Replay | `python -m eval.run_eval --mode replay --fixture eval/fixtures/live-llama3.jsonl` | Re-runs a recorded live session exactly; every recording in `eval/fixtures/` is also replayed in CI by `tests/test_replay.py` |
 
@@ -141,9 +160,9 @@ Linux x86_64 with an NVIDIA RTX 5070 on 2026-10-12:
 
 | Runtime | Model | Tool selection | Arguments | Repairs | p50 / p95 latency | Report |
 |---|---|---|---|---|---|---|
-| Ollama 0.34.0 (GPU) | `llama3:8b` Q4_0 | **50/50** | **50/50** | 0 | 109 / 156 ms | [report](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/eval/report_live_llama3.md) |
-| Ollama 0.34.0 (GPU) | `mistral:latest` 7.2B Q4_K_M | **50/50** | **50/50** | 0 | 130 / 184 ms | [report](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/eval/report_live.md) |
-| llama.cpp b11565 (CPU only) | same mistral 7B Q4_K_M weights | **50/50** | **50/50** | 0 | 1378 / 1634 ms | [report](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/eval/report_live_llamacpp.md) |
+| Ollama 0.34.0 (GPU) | `llama3:8b` Q4_0 | **50/50** | **50/50** | 0 | 109 / 156 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live_llama3.md) |
+| Ollama 0.34.0 (GPU) | `mistral:latest` 7.2B Q4_K_M | **50/50** | **50/50** | 0 | 130 / 184 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live.md) |
+| llama.cpp b11565 (CPU only) | same mistral 7B Q4_K_M weights | **50/50** | **50/50** | 0 | 1378 / 1634 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live_llamacpp.md) |
 
 These are measurements on one machine, not guarantees. Other models,
 quantizations or hardware can differ, and the benchmark covers only the four
@@ -169,20 +188,24 @@ CI runs all three on Python 3.10, 3.12 and 3.13, plus a clean-install smoke test
   happens.
 - Temperature 0 is not bit-identical across hardware and runtime versions; use
   record/replay for reproducible tests.
-- No OS-level sandboxing: TinyAgent controls *which* registered function runs
+- No OS-level sandboxing: SLMRouter controls *which* registered function runs
   and *with what* validated arguments, not what the function does.
 
 ## Contributing
 
 Bug reports, questions and pull requests are welcome. See
-[CONTRIBUTING.md](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/CONTRIBUTING.md)
 for how to set up a development environment and what a pull request needs.
 Report security issues privately as described in
-[SECURITY.md](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/SECURITY.md),
+[SECURITY.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/SECURITY.md),
 not in a public issue.
 
 ## License
 
-TinyAgent is released under the
-[MIT License](https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/LICENSE).
-Copyright (c) 2026 Aisha Amna, Deepak, Dharshini and Dhyanesh.
+SLMRouter is released under the
+[Apache License 2.0](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/LICENSE).
+Copyright 2026 Dhyanesh Mahendiran. See
+[NOTICE](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/NOTICE).
+
+The SLMRouter name is not licensed for use by derivative projects
+(Apache-2.0, Section 6).

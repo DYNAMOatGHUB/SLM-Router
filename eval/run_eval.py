@@ -1,4 +1,4 @@
-"""Run deterministic, live, or replay TinyAgent evaluation."""
+"""Run deterministic, live, or replay SLMRouter evaluation."""
 
 from __future__ import annotations
 
@@ -43,9 +43,9 @@ def _percentile(values: list[float], fraction: float) -> float | None:
 
 
 def _round_trip(items: tuple[Scenario, ...], registry: Any) -> None:
-    from tinyagent.executor import execute
-    from tinyagent.parser import parse
-    from tinyagent.types import ParsedAction
+    from slmrouter.executor import execute
+    from slmrouter.parser import parse
+    from slmrouter.types import ParsedAction
 
     for scenario in items:
         parsed = parse(scenario.canonical_output)
@@ -57,9 +57,9 @@ def _round_trip(items: tuple[Scenario, ...], registry: Any) -> None:
 
 
 def _fault_code(text: str, registry: Any) -> str | None:
-    from tinyagent.executor import execute
-    from tinyagent.parser import parse
-    from tinyagent.types import ParsedAction, ParsedFinal, ParseFailure
+    from slmrouter.executor import execute
+    from slmrouter.parser import parse
+    from slmrouter.types import ParsedAction, ParsedFinal, ParseFailure
 
     outcome = parse(text)
     if isinstance(outcome, ParseFailure):
@@ -73,10 +73,10 @@ def _fault_code(text: str, registry: Any) -> str | None:
 
 
 def _sim(seed: int, max_repairs: int) -> tuple[dict[str, Any], bool]:
-    from tinyagent.demo_tools import build_registry
-    from tinyagent.agent import TinyAgent
-    from tinyagent.backends.simulator import SimulatedBackend
-    from tinyagent.prompt import estimate_tokens, render_prompt, render_tool_line
+    from slmrouter.demo_tools import build_registry
+    from slmrouter.agent import SLMRouter
+    from slmrouter.backends.simulator import SimulatedBackend
+    from slmrouter.prompt import estimate_tokens, render_prompt, render_tool_line
 
     registry = build_registry()
     items = scenarios()
@@ -106,7 +106,7 @@ def _sim(seed: int, max_repairs: int) -> tuple[dict[str, Any], bool]:
                     bad if index == 0 or v == "repeat" else good
                 )
                 backend = SimulatedBackend(script)
-                agent = TinyAgent(
+                agent = SLMRouter(
                     backend, registry, max_repairs=max_repairs,
                     require_tool=True,
                 )
@@ -213,17 +213,17 @@ def _llamacpp_metadata(base_url: str) -> tuple[str, str]:
 
 
 def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
-    from tinyagent.demo_tools import build_registry
-    from tinyagent.agent import TinyAgent
-    from tinyagent.backends.simulator import RecordingBackend
+    from slmrouter.demo_tools import build_registry
+    from slmrouter.agent import SLMRouter
+    from slmrouter.backends.simulator import RecordingBackend
 
     if backend_name == "ollama":
-        from tinyagent.backends import OllamaBackend
+        from slmrouter.backends import OllamaBackend
 
         backend = OllamaBackend(model)
         runtime_version, quantization = _ollama_metadata(backend.host, model)
     elif backend_name == "llamacpp":
-        from tinyagent.backends import LlamaCppBackend
+        from slmrouter.backends import LlamaCppBackend
 
         backend = LlamaCppBackend()
         runtime_version, quantization = _llamacpp_metadata(backend.base_url)
@@ -231,7 +231,7 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
         raise ValueError(f"unsupported live backend: {backend_name}")
     if record:
         backend = RecordingBackend(backend, record)
-    agent = TinyAgent(backend, build_registry(), require_tool=True)
+    agent = SLMRouter(backend, build_registry(), require_tool=True)
     queries = _live_queries()
     results = []
     durations = []
@@ -270,11 +270,11 @@ def _live(backend_name: str, model: str, record: str | None) -> dict[str, Any]:
 
 
 def _replay(fixture: str) -> dict[str, Any]:
-    from tinyagent.demo_tools import build_registry
-    from tinyagent.agent import TinyAgent
-    from tinyagent.backends.simulator import ReplayBackend
+    from slmrouter.demo_tools import build_registry
+    from slmrouter.agent import SLMRouter
+    from slmrouter.backends.simulator import ReplayBackend
 
-    agent = TinyAgent(ReplayBackend(fixture), build_registry(), require_tool=True)
+    agent = SLMRouter(ReplayBackend(fixture), build_registry(), require_tool=True)
     results = [agent.run(case["query"]) for case in _live_queries()]
     return {
         "mode": "replay",
@@ -294,7 +294,7 @@ def _write_report(report: dict[str, Any], path: Path) -> None:
             rows.append(f"| {key} | {value} |")
     markdown = path.with_suffix(".md")
     markdown.write_text(
-        "# TinyAgent evaluation\n\n" + "\n".join(rows) + "\n",
+        "# SLMRouter evaluation\n\n" + "\n".join(rows) + "\n",
         encoding="utf-8",
     )
 

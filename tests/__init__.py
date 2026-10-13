@@ -1,1 +1,1 @@
-"""TinyAgent test suite."""
+"""SLMRouter test suite."""

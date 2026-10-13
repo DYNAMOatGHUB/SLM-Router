@@ -14,14 +14,14 @@ import time
 import warnings
 from typing import Sequence
 
-from tinyagent.backends.base import (
+from slmrouter.backends.base import (
     _is_loopback_url,
     _post_json,
     _protocol_error,
     _token_count,
     _validate_call,
 )
-from tinyagent.types import Completion
+from slmrouter.types import Completion
 
 
 class LlamaCppBackend:
