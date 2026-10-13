@@ -29,5 +29,5 @@ TinyAgent and renamed to SLMRouter for publication.
 - `slmrouter` command-line tool, simulated, recording and replay backends, a
   fault-injection evaluation harness and recorded live evaluations.
 
-[Unreleased]: https://github.com/DYNAMOatGHUB/TinyAgent-SLM/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/DYNAMOatGHUB/TinyAgent-SLM/releases/tag/v0.1.0
+[Unreleased]: https://github.com/DYNAMOatGHUB/SLM-Router/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/DYNAMOatGHUB/SLM-Router/releases/tag/v0.1.0

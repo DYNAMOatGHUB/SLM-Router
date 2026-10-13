@@ -20,8 +20,8 @@ SLMRouter has no runtime dependencies and no development dependencies beyond
 Python 3.10 or newer.
 
 ```bash
-git clone https://github.com/DYNAMOatGHUB/TinyAgent-SLM.git
-cd TinyAgent-SLM
+git clone https://github.com/DYNAMOatGHUB/SLM-Router.git
+cd SLM-Router
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```

@@ -8,7 +8,7 @@ Security fixes are released for the latest `0.x` version only.
 
 Do not open a public issue. Report privately through GitHub:
 **Security** tab → **Report a vulnerability**
-(https://github.com/DYNAMOatGHUB/TinyAgent-SLM/security/advisories/new).
+(https://github.com/DYNAMOatGHUB/SLM-Router/security/advisories/new).
 
 Include the version, a description of the problem, and steps or code to
 reproduce it. We aim to acknowledge reports within 7 days and to agree a

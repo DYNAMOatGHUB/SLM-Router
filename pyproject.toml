@@ -29,11 +29,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM"
-Documentation = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM#readme"
-Repository = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM"
-Issues = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM/issues"
-Changelog = "https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/DYNAMOatGHUB/SLM-Router"
+Documentation = "https://github.com/DYNAMOatGHUB/SLM-Router#readme"
+Repository = "https://github.com/DYNAMOatGHUB/SLM-Router"
+Issues = "https://github.com/DYNAMOatGHUB/SLM-Router/issues"
+Changelog = "https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/CHANGELOG.md"
 
 [project.scripts]
 slmrouter = "slmrouter.cli:main"

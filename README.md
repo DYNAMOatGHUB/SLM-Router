@@ -2,8 +2,8 @@
 
 [![PyPI](https://img.shields.io/pypi/v/slmrouter)](https://pypi.org/project/slmrouter/)
 [![Python](https://img.shields.io/pypi/pyversions/slmrouter)](https://pypi.org/project/slmrouter/)
-[![CI](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/actions/workflows/ci.yml/badge.svg)](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/LICENSE)
+[![CI](https://github.com/DYNAMOatGHUB/SLM-Router/actions/workflows/ci.yml/badge.svg)](https://github.com/DYNAMOatGHUB/SLM-Router/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/LICENSE)
 
 **Reliable tool calling for small local LLMs.** Zero dependencies, bounded model
 calls, no `eval`.
@@ -34,7 +34,7 @@ retry loops that never end. SLMRouter instead treats the model as a
 one registered tool with arguments, or return a final answer. A query uses at
 most `1 + max_repairs` model calls (`max_repairs` is 0, 1 or 2), so infinite
 loops are structurally impossible. The full design and tradeoffs are in
-[ARCHITECTURE.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/ARCHITECTURE.md).
+[ARCHITECTURE.md](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/ARCHITECTURE.md).
 
 ## Install
 
@@ -47,7 +47,7 @@ It has no runtime dependencies.
 To install the latest code from GitHub instead:
 
 ```bash
-pip install "git+https://github.com/DYNAMOatGHUB/TinyAgent-SLM.git"
+pip install "git+https://github.com/DYNAMOatGHUB/SLM-Router.git"
 ```
 
 For live use, run a local [Ollama](https://ollama.com) or llama.cpp server.
@@ -151,7 +151,7 @@ benchmark queries, against 50 of 50 with the template.
 
 | Run | Command | Result |
 |---|---|---|
-| Simulated (no model, CI) | `python -m eval.run_eval --mode sim` | 795 fault-injection cases: 280/280 recoverable faults recovered on the first call, **0 false executions**, max 2 model calls (ceiling 2), median framework overhead 0.05 ms — [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report.md) |
+| Simulated (no model, CI) | `python -m eval.run_eval --mode sim` | 795 fault-injection cases: 280/280 recoverable faults recovered on the first call, **0 false executions**, max 2 model calls (ceiling 2), median framework overhead 0.05 ms — [report](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/eval/report.md) |
 | Live | `python -m eval.run_eval --mode live --backend ollama --model llama3:8b --record eval/fixtures/live-llama3.jsonl --out eval/report_live_llama3.json` | See the table below |
 | Replay | `python -m eval.run_eval --mode replay --fixture eval/fixtures/live-llama3.jsonl` | Re-runs a recorded live session exactly; every recording in `eval/fixtures/` is also replayed in CI by `tests/test_replay.py` |
 
@@ -160,9 +160,9 @@ Linux x86_64 with an NVIDIA RTX 5070 on 2026-10-12:
 
 | Runtime | Model | Tool selection | Arguments | Repairs | p50 / p95 latency | Report |
 |---|---|---|---|---|---|---|
-| Ollama 0.34.0 (GPU) | `llama3:8b` Q4_0 | **50/50** | **50/50** | 0 | 109 / 156 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live_llama3.md) |
-| Ollama 0.34.0 (GPU) | `mistral:latest` 7.2B Q4_K_M | **50/50** | **50/50** | 0 | 130 / 184 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live.md) |
-| llama.cpp b11565 (CPU only) | same mistral 7B Q4_K_M weights | **50/50** | **50/50** | 0 | 1378 / 1634 ms | [report](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/eval/report_live_llamacpp.md) |
+| Ollama 0.34.0 (GPU) | `llama3:8b` Q4_0 | **50/50** | **50/50** | 0 | 109 / 156 ms | [report](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/eval/report_live_llama3.md) |
+| Ollama 0.34.0 (GPU) | `mistral:latest` 7.2B Q4_K_M | **50/50** | **50/50** | 0 | 130 / 184 ms | [report](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/eval/report_live.md) |
+| llama.cpp b11565 (CPU only) | same mistral 7B Q4_K_M weights | **50/50** | **50/50** | 0 | 1378 / 1634 ms | [report](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/eval/report_live_llamacpp.md) |
 
 These are measurements on one machine, not guarantees. Other models,
 quantizations or hardware can differ, and the benchmark covers only the four
@@ -194,18 +194,18 @@ CI runs all three on Python 3.10, 3.12 and 3.13, plus a clean-install smoke test
 ## Contributing
 
 Bug reports, questions and pull requests are welcome. See
-[CONTRIBUTING.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/CONTRIBUTING.md)
 for how to set up a development environment and what a pull request needs.
 Report security issues privately as described in
-[SECURITY.md](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/SECURITY.md),
+[SECURITY.md](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/SECURITY.md),
 not in a public issue.
 
 ## License
 
 SLMRouter is released under the
-[Apache License 2.0](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/LICENSE).
+[Apache License 2.0](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/LICENSE).
 Copyright 2026 Dhyanesh Mahendiran. See
-[NOTICE](https://github.com/DYNAMOatGHUB/TinyAgent-SLM/blob/main/NOTICE).
+[NOTICE](https://github.com/DYNAMOatGHUB/SLM-Router/blob/main/NOTICE).
 
 The SLMRouter name is not licensed for use by derivative projects
 (Apache-2.0, Section 6).
