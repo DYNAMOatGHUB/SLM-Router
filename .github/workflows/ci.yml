@@ -38,6 +38,11 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install .
+      - name: Build and check the distribution
+        run: |
+          "$RUNNER_TEMP/venv/bin/pip" install build twine
+          "$RUNNER_TEMP/venv/bin/python" -m build --outdir "$RUNNER_TEMP/dist"
+          "$RUNNER_TEMP/venv/bin/twine" check --strict "$RUNNER_TEMP"/dist/*
       - name: Smoke test outside the source tree
         working-directory: ${{ runner.temp }}
         run: |

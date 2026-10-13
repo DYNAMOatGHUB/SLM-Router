@@ -1,12 +1,20 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tinyagent"
+name = "tinyagent-slm"
 version = "0.1.0"
 description = "A bounded, zero-runtime-dependency tool router for local language models"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Aisha Amna" },
+    { name = "Deepak" },
+    { name = "Dharshini" },
+    { name = "Dhyanesh" },
+]
 requires-python = ">=3.10"
 dependencies = []
 keywords = ["llm", "agent", "tool-calling", "ollama", "llama.cpp", "local-models"]
@@ -25,7 +33,11 @@ classifiers = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/LLM-project-Team/TinyAgent-SLM"
+Documentation = "https://github.com/LLM-project-Team/TinyAgent-SLM#readme"
 Repository = "https://github.com/LLM-project-Team/TinyAgent-SLM"
+Issues = "https://github.com/LLM-project-Team/TinyAgent-SLM/issues"
+Changelog = "https://github.com/LLM-project-Team/TinyAgent-SLM/blob/main/CHANGELOG.md"
 
 [project.scripts]
 tinyagent = "tinyagent.cli:main"
