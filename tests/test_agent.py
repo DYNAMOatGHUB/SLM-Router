@@ -243,7 +243,7 @@ class CorpusShapeTest(unittest.TestCase):
         self.assertEqual(len(_live_queries()), 50)
 
 
-class AishaIntegrationTest(unittest.TestCase):
+class ReflectionPromptSimulatorContractTest(unittest.TestCase):
     def test_reflection_prompt_and_simulator_contract(self):
         from examples.demo_tools import build_registry
         from slmrouter.backends.simulator import SimulatedBackend

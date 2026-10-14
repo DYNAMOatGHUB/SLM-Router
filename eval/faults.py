@@ -1,6 +1,7 @@
 """Forward-generated faults from PRD-03 Section 7.
 
-The verdict table requires co-review by the parser owner before release.
+Each verdict is also asserted directly against the parser and executor in
+tests/test_executor.py.
 """
 
 from __future__ import annotations

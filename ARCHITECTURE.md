@@ -1,13 +1,13 @@
 # SLMRouter: Architecture, Problem Analysis, and Solution Design
 
-| Field          | Value                                                                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document       | SLMRouter System Architecture (ARCH-000)                                                                                                                                     |
-| Version        | 1.2                                                                                                                                                                          |
-| Status         | Sprint baseline. Interface contracts in Section 8 are FROZEN after Phase 0.                                                                                                  |
-| Audience       | All four engineers, reviewers, demo judges                                                                                                                                   |
-| Team           | Aisha Amna (Engineer 1), Deepak (Engineer 2), Dharshini (Engineer 3), Dhyanesh (Engineer 4)                                                                                  |
-| Companion PRDs | PRD-01 (Reflection and Prompt), PRD-02 (Inference Transport), PRD-03 (Parser and Executor), PRD-04 (Orchestrator and Evaluation); internal sprint documents, not published |
+| Field          | Value |
+| -------------- | ----- |
+| Document       | SLMRouter System Architecture (ARCH-000) |
+| Version        | 1.3 |
+| Status         | Current for release 0.1.0. Interface contracts in Section 8 are stable. |
+| Audience       | Contributors, reviewers and users |
+| Maintainer     | Dhyanesh Mahendiran |
+| Requirements   | PRD-000 SLMRouter Requirements (internal, not published). The original sprint PRDs, PRD-01 to PRD-04, are kept as historical records. |
 
 ---
 
@@ -186,28 +186,28 @@ All three failures share one root cause: **the framework relies on the model's i
 [AgentResult: status, text, provenance, diagnostics]
 ```
 
-### 3.3 Component architecture and ownership
+### 3.3 Component architecture
 
 ```mermaid
 flowchart LR
-    subgraph E1["Aisha Amna, Engineer 1: Reflection and Prompt"]
+    subgraph C1["Reflection and Prompt"]
         R["reflection.py<br/>@tool"] --> REG["registry.py<br/>ToolRegistry"]
         REG --> PR["prompt.py<br/>render_prompt / render_repair_prompt"]
     end
-    subgraph E2["Deepak, Engineer 2: Inference Transport"]
+    subgraph C2["Inference Transport"]
         B["backends/base.py<br/>HTTP helper + error mapping"]
         O["backends/ollama.py"]
         L["backends/llamacpp.py"]
         B --- O
         B --- L
     end
-    subgraph E3["Dharshini, Engineer 3: Parser and Executor"]
+    subgraph C3["Parser and Executor"]
         PA["parser.py<br/>parse"]
         CO["coercion.py<br/>coerce"]
         EX["executor.py<br/>execute"]
         CO --> EX
     end
-    subgraph E4["Dhyanesh, Engineer 4: Orchestrator and Evaluation"]
+    subgraph C4["Orchestrator and Evaluation"]
         AG["agent.py<br/>SLMRouter.run"]
         SIM["backends/simulator.py<br/>Simulated + Replay backends"]
         EV["eval/ harness + fault corpus"]
@@ -221,10 +221,10 @@ flowchart LR
     AG --> PA
     AG --> EX
     REG --> EX
-    T -.-> E1
-    T -.-> E2
-    T -.-> E3
-    T -.-> E4
+    T -.-> C1
+    T -.-> C2
+    T -.-> C3
+    T -.-> C4
 ```
 
 ### 3.4 Runtime sequence (happy path and bounded repair)
@@ -323,7 +323,7 @@ Registration rules. These fail fast at import time, never at query time.
 
 ## 5. Step 2: Linear Prompt Injection
 
-One flat prompt: no chat history, no ReAct protocol. The canonical template is owned by Aisha Amna, and wording changes require an evaluation run by Dhyanesh.
+One flat prompt: no chat history, no ReAct protocol. Wording changes to the template require a live evaluation run showing no regression.
 
 ```text
 Pick one tool for the query.
@@ -418,7 +418,7 @@ The parser accepts the near misses small models commonly produce. It never guess
 
 ## 8. Frozen Interface Contracts (Phase 0)
 
-These definitions live in `slmrouter/types.py` and `slmrouter/errors.py`. Aisha Amna commits them in Phase 0. After freeze, any change requires sign-off from all four engineers (Section 12).
+These definitions live in `slmrouter/types.py` and `slmrouter/errors.py`. They were frozen in Phase 0 (Section 13). Changing them requires a version bump of this document (Section 12).
 
 ```python
 # slmrouter/types.py
@@ -516,21 +516,21 @@ class CoercionError(SLMRouterError, ValueError):
     pass
 ```
 
-Public API per module. Owners may add private helpers (leading underscore) but must not change these signatures.
+Public API per module. Modules may add private helpers (leading underscore), but these signatures change only under Section 12.
 
-| Module                    | Public API                                                                                                                                                                                                                       | Owner      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `reflection.py`         | `tool(func=None, *, name=None, registry=None)`                                                                                                                                                                            | Aisha Amna |
-| `registry.py`           | `ToolRegistry.register(spec)`, `.get(name) -> ToolSpec \| None`, `.all() -> tuple[ToolSpec, ...]`, `.names() -> tuple[str, ...]`; module-level `default_registry`                                                       | Aisha Amna |
-| `prompt.py`             | `render_prompt(query, tools, *, max_query_chars=2000) -> str`, `render_repair_prompt(prompt, previous_output, code, detail) -> str`, `render_tool_line(spec) -> str`, `estimate_tokens(text) -> int`, `STOP_SEQUENCES` | Aisha Amna |
-| `backends/ollama.py`    | `OllamaBackend(model, *, host="http://127.0.0.1:11434", timeout_s=60.0, seed=42, num_ctx=None)`                                                                                                                                | Deepak     |
-| `backends/llamacpp.py`  | `LlamaCppBackend(*, base_url="http://127.0.0.1:8080", timeout_s=60.0, seed=42, chat_template=True)`                                                                                                                            | Deepak     |
-| `parser.py`             | `parse(text: str) -> ParseOutcome`                                                                                                                                                                                             | Dharshini  |
-| `coercion.py`           | `coerce(raw: str, param: ParamSpec) -> Any` (raises `CoercionError`)                                                                                                                                                         | Dharshini  |
-| `executor.py`           | `execute(action, registry, *, timeout_s=10.0, max_output_chars=4000) -> ToolResult`                                                                                                                                            | Dharshini  |
-| `agent.py`              | `SLMRouter(backend, registry=None, *, max_repairs=1, require_tool=False, max_tokens=96, tool_timeout_s=10.0)`, `.run(query: str) -> AgentResult`                                                                             | Dhyanesh   |
-| `backends/simulator.py` | `SimulatedBackend(script_or_fn)`, `ReplayBackend(path)`, `RecordingBackend(inner, path)`                                                                                                                                   | Dhyanesh   |
-| `demo_tools.py`         | `build_registry() -> ToolRegistry` (the four demo tools used by the CLI, examples and evaluation)                                                                                                                              | Dhyanesh   |
+| Module                    | Public API                                                                                                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reflection.py`         | `tool(func=None, *, name=None, registry=None)`                                                                                                                                                                            |
+| `registry.py`           | `ToolRegistry.register(spec)`, `.get(name) -> ToolSpec \| None`, `.all() -> tuple[ToolSpec, ...]`, `.names() -> tuple[str, ...]`; module-level `default_registry`                                                       |
+| `prompt.py`             | `render_prompt(query, tools, *, max_query_chars=2000) -> str`, `render_repair_prompt(prompt, previous_output, code, detail) -> str`, `render_tool_line(spec) -> str`, `estimate_tokens(text) -> int`, `STOP_SEQUENCES` |
+| `backends/ollama.py`    | `OllamaBackend(model, *, host="http://127.0.0.1:11434", timeout_s=60.0, seed=42, num_ctx=None)`                                                                                                                                |
+| `backends/llamacpp.py`  | `LlamaCppBackend(*, base_url="http://127.0.0.1:8080", timeout_s=60.0, seed=42, chat_template=True)`                                                                                                                            |
+| `parser.py`             | `parse(text: str) -> ParseOutcome`                                                                                                                                                                                             |
+| `coercion.py`           | `coerce(raw: str, param: ParamSpec) -> Any` (raises `CoercionError`)                                                                                                                                                         |
+| `executor.py`           | `execute(action, registry, *, timeout_s=10.0, max_output_chars=4000) -> ToolResult`                                                                                                                                            |
+| `agent.py`              | `SLMRouter(backend, registry=None, *, max_repairs=1, require_tool=False, max_tokens=96, tool_timeout_s=10.0)`, `.run(query: str) -> AgentResult`                                                                             |
+| `backends/simulator.py` | `SimulatedBackend(script_or_fn)`, `ReplayBackend(path)`, `RecordingBackend(inner, path)`                                                                                                                                   |
+| `demo_tools.py`         | `build_registry() -> ToolRegistry` (the four demo tools used by the CLI, examples and evaluation)                                                                                                                              |
 
 ---
 
@@ -538,16 +538,16 @@ Public API per module. Owners may add private helpers (leading underscore) but m
 
 | ID     | Requirement                            | Target                                                                                                                                                                   | Verified by                                              |
 | ------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
-| NFR-1  | Runtime dependencies                   | 0 (stdlib only), Python >= 3.10                                                                                                                                          | Import-scan test (E4)                                    |
-| NFR-2  | Base prompt footprint                  | <= 120 estimated tokens (`ceil(chars/4)`) with zero tools and a 10-word query                                                                                          | Unit test (E1)                                           |
-| NFR-3  | Per-tool footprint                     | <= 40 estimated tokens per tool line                                                                                                                                     | Unit test (E1)                                           |
-| NFR-4  | Model calls per query                  | <= `1 + max_repairs`; `max_repairs` in {0, 1, 2}                                                                                                                      | Property test over the full fault corpus (E4)            |
-| NFR-5  | Recoverable-fault parse rate           | 100% of fault-corpus cases marked `recover`                                                                                                                             | Fault corpus (E3, E4)                                    |
-| NFR-6  | False execution rate                   | 0: no corrupted output ever executes a wrong tool or wrong argument values                                                                                               | Fault-corpus ground truth (E4)                           |
-| NFR-7  | No code execution of model text        | Zero calls to builtins `eval`, `exec`, `compile`, `__import__`, and zero uses of `ast.literal_eval` or `pickle` in `slmrouter/` (`re.compile` is allowed) | AST-based static gate in CI (E4)                         |
-| NFR-8  | Parser latency                         | p99 < 1 ms per output on a laptop CPU                                                                                                                                    | Microbenchmark (E3)                                      |
-| NFR-9  | Framework overhead excluding inference | < 5 ms per query, median                                                                                                                                                 | Benchmark with `SimulatedBackend` (E4)                  |
-| NFR-10 | Live tool-selection accuracy (stretch) | >= 90% on the 50-query benchmark with `llama3:8b` or `mistral:7b`                                                                                                     | Live eval (E4); reported as measured, never extrapolated |
+| NFR-1  | Runtime dependencies                   | 0 (stdlib only), Python >= 3.10                                                                                                                                          | Import-scan test                                    |
+| NFR-2  | Base prompt footprint                  | <= 120 estimated tokens (`ceil(chars/4)`) with zero tools and a 10-word query                                                                                          | Unit test                                           |
+| NFR-3  | Per-tool footprint                     | <= 40 estimated tokens per tool line                                                                                                                                     | Unit test                                           |
+| NFR-4  | Model calls per query                  | <= `1 + max_repairs`; `max_repairs` in {0, 1, 2}                                                                                                                      | Property test over the full fault corpus            |
+| NFR-5  | Recoverable-fault parse rate           | 100% of fault-corpus cases marked `recover`                                                                                                                             | Fault corpus                                    |
+| NFR-6  | False execution rate                   | 0: no corrupted output ever executes a wrong tool or wrong argument values                                                                                               | Fault-corpus ground truth                           |
+| NFR-7  | No code execution of model text        | Zero calls to builtins `eval`, `exec`, `compile`, `__import__`, and zero uses of `ast.literal_eval` or `pickle` in `slmrouter/` (`re.compile` is allowed) | AST-based static gate in CI                         |
+| NFR-8  | Parser latency                         | p99 < 1 ms per output on a laptop CPU                                                                                                                                    | Microbenchmark                                      |
+| NFR-9  | Framework overhead excluding inference | < 5 ms per query, median                                                                                                                                                 | Benchmark with `SimulatedBackend`                  |
+| NFR-10 | Live tool-selection accuracy (stretch) | >= 90% on the 50-query benchmark with `llama3:8b` or `mistral:7b`                                                                                                     | Live eval; reported as measured, never extrapolated |
 
 NFR-10 is a measurement goal, not a guarantee. If no suitable hardware is available, the live run is reported as "not executed", never estimated.
 
@@ -555,7 +555,7 @@ NFR-10 is a measurement goal, not a guarantee. If no suitable hardware is availa
 
 ## 10. Turning a Constraint into an Asset: The Deterministic Forward Simulator
 
-**Constraint:** the team has no labelled dataset of SLM tool-calling failures, and GPUs may be scarce or absent during the sprint. Live 8B inference is slow and is not reproducible across machines and model versions.
+**Constraint:** there is no labelled dataset of SLM tool-calling failures, and GPUs may be scarce or absent during development. Live 8B inference is slow and is not reproducible across machines and model versions.
 
 **Asset:** SLMRouter's output grammar is small and fully specified, so failures can be generated **forward**. Start from a known-correct answer and apply a known corruption. Ground truth is then correct by construction, with no human labelling.
 
@@ -577,98 +577,99 @@ flowchart LR
 The simulator is validated in three ways:
 
 1. **Round-trip identity.** Every canonical output must parse and execute to exactly the intended tool and arguments. A failure here is a simulator or parser bug, and it blocks the run.
-2. **Reviewed verdicts.** Every fault class has a declared expected verdict, reviewed jointly by Dharshini (parser owner) and Dhyanesh (simulator owner).
+2. **Reviewed verdicts.** Every fault class has a declared expected verdict, checked against the parser specification and asserted directly by `tests/test_executor.py`.
 3. **Calibration against reality.** When live hardware is available, real outputs are recorded and each real failure is classified into an existing fault class or added as a new one. The taxonomy tracks observed behaviour.
 
 The result: the full pipeline is tested deterministically on any laptop in seconds, CI needs no GPU, and any failure seen in a demo can be replayed exactly.
 
 ---
 
-## 11. Repository Layout and Ownership Map
+## 11. Repository Layout
 
 ```text
 slmrouter/
-  __init__.py              E4  public re-exports only
-  types.py                 E1  FROZEN contract (all sign-off to change)
-  errors.py                E1  FROZEN contract (all sign-off to change)
-  reflection.py            E1
-  registry.py              E1
-  prompt.py                E1
+  __init__.py              public re-exports only
+  types.py                 FROZEN contract (Section 12)
+  errors.py                FROZEN contract (Section 12)
+  reflection.py
+  registry.py
+  prompt.py
   backends/
-    __init__.py            E2
-    base.py                E2  HTTP helper, BackendError mapping
-    ollama.py              E2
-    llamacpp.py            E2
-    simulator.py           E4
-  parser.py                E3
-  coercion.py              E3
-  executor.py              E3
-  agent.py                 E4
-  cli.py                   E4  `slmrouter` console script
-  __main__.py              E4  `python -m slmrouter`
-  demo_tools.py            E4  demo tools shipped with the package (CLI, examples, eval)
-  py.typed                 E4  PEP 561 marker
+    __init__.py
+    base.py                HTTP helper, BackendError mapping
+    ollama.py
+    llamacpp.py
+    simulator.py
+  parser.py
+  coercion.py
+  executor.py
+  agent.py
+  cli.py                   `slmrouter` console script
+  __main__.py              `python -m slmrouter`
+  demo_tools.py            demo tools shipped with the package (CLI, examples, eval)
+  py.typed                 PEP 561 marker
 tests/
-  test_reflection.py       E1
-  test_registry.py         E1
-  test_prompt.py           E1
-  test_backends.py         E2  (local stub server built on http.server)
-  stub_server.py           E2
-  fixtures/                E2  recorded backend responses
-  test_parser.py           E3
-  test_coercion.py         E3
-  test_executor.py         E3  (includes the F01-F16 verdict table test)
-  fixtures_tools.py        E3
-  test_agent.py            E4
-  test_integration.py      E4
-  test_replay.py           E4  replays every eval/fixtures/live-*.jsonl
-  test_no_deps.py          E4
-  test_static_gate.py      E4  NFR-7 AST gate
+  test_reflection.py
+  test_registry.py
+  test_prompt.py
+  test_backends.py         (local stub server built on http.server)
+  stub_server.py
+  fixtures/                recorded backend responses
+  test_parser.py
+  test_coercion.py
+  test_executor.py         (includes the F01-F16 verdict table test)
+  fixtures_tools.py
+  test_agent.py
+  test_integration.py
+  test_replay.py           replays every eval/fixtures/live-*.jsonl
+  test_no_deps.py
+  test_static_gate.py      NFR-7 AST gate
 eval/
-  scenarios.py             E4
-  faults.py                E4  (verdict table co-reviewed with E3)
-  run_eval.py              E4
-  live_queries.jsonl       E4
-  fixtures/                E4  recorded replay files
-  report*.{json,md}        E4  simulated and live evaluation reports
+  scenarios.py
+  faults.py                verdicts also asserted in tests/test_executor.py
+  run_eval.py
+  live_queries.jsonl
+  fixtures/                recorded replay files
+  report*.{json,md}        simulated and live evaluation reports
 bench/
-  bench_parser.py          E3  NFR-8 microbenchmark
-examples/                  E4  quickstart.py, flask_endpoint.py; demo_tools.py re-exports slmrouter.demo_tools
-.github/workflows/ci.yml   E4
-pyproject.toml             E4
-README.md                  E4
-ARCHITECTURE.md            All four engineers (change by consensus)
-prd/                       Internal sprint PRDs (not in the public repository)
+  bench_parser.py          NFR-8 microbenchmark
+examples/                  quickstart.py, flask_endpoint.py; demo_tools.py re-exports slmrouter.demo_tools
+.github/workflows/ci.yml
+pyproject.toml
+README.md
+ARCHITECTURE.md            This document
+prd/                       Internal requirements documents (not in the public repository)
 ```
 
-Each file has exactly one owner. Non-owners may open a change request but may not commit to it.
 
 ---
 
 ## 12. Change Control
 
-| Change type                             | Approval needed                                                |
-| --------------------------------------- | -------------------------------------------------------------- |
-| Private helper inside an owned module   | Owner only                                                     |
-| Public signature in the Section 8 table | All four engineers                                             |
-| `types.py` / `errors.py`            | All four engineers, plus a version bump in this document       |
-| Prompt template wording                 | Aisha Amna, plus an eval run by Dhyanesh showing no regression |
-| Fault verdict table                     | Dharshini and Dhyanesh                                         |
-| Any third-party runtime dependency      | Not permitted in v1                                            |
+SLMRouter has a single maintainer, Dhyanesh Mahendiran, who reviews and merges
+all changes. Outside contributions arrive as pull requests (see
+`CONTRIBUTING.md`).
+
+| Change type                             | Requirement                                                      |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| Private helper inside a module          | Unit tests                                                       |
+| Public signature in the Section 8 table | Discussed in an issue first; changelog entry and version bump    |
+| `types.py` / `errors.py`                | As above, plus a version bump of this document                   |
+| Prompt template wording                 | Live evaluation run showing no regression                        |
+| Fault verdict table                     | Verdicts asserted against the parser in `tests/test_executor.py` |
+| Any third-party runtime dependency      | Not permitted in v1                                              |
 
 ---
 
-## 13. Sprint Plan
+## 13. Development Phases
 
-Times are relative to sprint start and assume a single-day sprint. Scale them proportionally for longer sprints.
-
-| Phase                 | Window           | Exit criteria                                                                   |
-| --------------------- | ---------------- | ------------------------------------------------------------------------------- |
-| 0. Contract freeze    | T+0:00 to T+0:45 | `types.py` and `errors.py` merged; all four engineers sign off on Section 8 |
-| 1. Isolated build     | T+0:45 to T+4:30 | Each module passes its own unit tests using stubs only                          |
-| 2. Integration        | T+4:30 to T+6:00 | `SLMRouter.run` passes the full simulated fault corpus                        |
-| 3. Hardening and eval | T+6:00 to T+7:30 | NFR-1 to NFR-9 green; NFR-10 measured if hardware exists                        |
-| 4. Demo freeze        | T+7:30 to T+8:00 | Tagged build; README quickstart verified in a clean venv                        |
+| Phase                 | Exit criteria                                                                |
+| --------------------- | ---------------------------------------------------------------------------- |
+| 0. Contract freeze    | `types.py` and `errors.py` written and frozen (Section 8)                    |
+| 1. Isolated build     | Each module passes its own unit tests using stubs only                       |
+| 2. Integration        | `SLMRouter.run` passes the full simulated fault corpus                       |
+| 3. Hardening and eval | NFR-1 to NFR-9 green; NFR-10 measured on real hardware                       |
+| 4. Release            | Tagged build; README quickstart verified in a clean venv; published to PyPI  |
 
 ---
 
@@ -690,7 +691,7 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 | Prompt injection in the user query                          | Model emits a call the user should not trigger | Allowlist limits calls to registered tools; destructive tools must do their own authorization                  |
 | Temperature 0 is not bit-identical across hardware/backends | Different outputs on different machines        | Replay fixtures keep tests reproducible; live results are reported per machine and model                       |
 | Tool timeout cannot kill threads                            | Background work continues after timeout        | Documented; tools should enforce their own timeouts                                                            |
-| Server API drift (Ollama/llama.cpp versions)                | Transport breaks                               | Deepak pins tested server versions; unknown response shapes map to `E_BACKEND_PROTOCOL`                       |
+| Server API drift (Ollama/llama.cpp versions)                | Transport breaks                               | Tested server versions are pinned in the README; unknown response shapes map to `E_BACKEND_PROTOCOL`                       |
 
 ## 16. Revision History
 
@@ -699,3 +700,4 @@ Times are relative to sprint start and assume a single-day sprint. Scale them pr
 | 1.0     | Sprint     | Sprint baseline                                                                                                                                                     | All four engineers |
 | 1.1     | 2026-10-13 | `LlamaCppBackend` uses `/v1/chat/completions` by default, new `chat_template` parameter (Sections 3.2, 6, 8); `demo_tools` moved into the package (Sections 8, 11); layout updated to match the repository | All four engineers |
 | 1.2     | 2026-10-13 | Project renamed from TinyAgent to SLMRouter for public release: package `slmrouter`, class `SLMRouter`, decorator `@tool`, base exception `SLMRouterError`; released under Apache-2.0 | Dhyanesh Mahendiran |
+| 1.3     | 2026-10-14 | Ownership transferred to Dhyanesh Mahendiran as sole maintainer: ownership map, change control and sprint plan replaced by single-maintainer equivalents (Sections 3.3, 8, 9, 11, 12, 13) | Dhyanesh Mahendiran |
